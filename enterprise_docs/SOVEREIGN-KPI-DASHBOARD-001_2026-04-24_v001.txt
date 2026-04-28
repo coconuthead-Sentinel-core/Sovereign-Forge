@@ -1,0 +1,804 @@
+================================================================================
+SOVEREIGN FORGE — ENTERPRISE AI COGNITIVE PLATFORM
+KPI DASHBOARD — 8 KEY PERFORMANCE INDICATORS
+
+Document ID:     SOVEREIGN-KPI-DASHBOARD-001
+Revision:        v001
+Date:            2026-04-24
+Classification:  Enterprise Internal — Controlled Distribution
+Author:          Engineering Office, Sovereign Forge Program
+Status:          ACTIVE — AUTHORITATIVE
+================================================================================
+
+TABLE OF CONTENTS
+----------------------------------------------------------------------
+  1.  KPI Framework Overview
+  2.  KPI-001: CI Pipeline Pass Rate
+  3.  KPI-002: Azure AI Evaluation Score
+  4.  KPI-003: Cognitive Lens Accuracy
+  5.  KPI-004: Memory Zone Classification Accuracy
+  6.  KPI-005: API Uptime SLA
+  7.  KPI-006: WebSocket Event Delivery Rate
+  8.  KPI-007: Glyph Seed Match Precision
+  9.  KPI-008: Release Cadence
+  10. KPI Composite Scorecard
+  11. Measurement Infrastructure
+  12. Reporting Schedule
+  13. KPI Improvement Targets (Phase 4)
+  14. Document Control
+----------------------------------------------------------------------
+
+
+1. KPI FRAMEWORK OVERVIEW
+----------------------------------------------------------------------
+The Sovereign Forge KPI framework is structured around 8 key
+performance indicators that measure the health, quality, and
+reliability of the platform. Three of these KPIs (KPI-001, KPI-002,
+KPI-008) are unique to Sovereign Forge within the portfolio because
+they measure capabilities that only Sovereign Forge has:
+
+  KPI-001: CI Pipeline Pass Rate — Only Sovereign Forge has a
+           GitHub Actions CI/CD pipeline making CI pass rate
+           measurable.
+
+  KPI-002: Azure AI Evaluation Score — Only Sovereign Forge has
+           the Azure AI Evaluation SDK integration producing
+           quantitative AI quality scores.
+
+  KPI-008: Release Cadence — Only Sovereign Forge has an automated
+           release pipeline (release.yml) making release cadence
+           objectively trackable.
+
+KPI SCORING TRAFFIC LIGHT SYSTEM:
+
+  GREEN:   At or above target. No action required.
+  YELLOW:  Within 10% below target. Monitor and investigate.
+  RED:     More than 10% below target. Immediate action required.
+           Escalate to platform architect.
+
+KPI MEASUREMENT CADENCE:
+  Continuous:  KPI-001, KPI-005, KPI-006 (automated, real-time)
+  Per Sprint:  KPI-002, KPI-008 (sprint cycle measurement)
+  Per Run:     KPI-003, KPI-004, KPI-007 (per CI/test execution)
+----------------------------------------------------------------------
+
+
+2. KPI-001: CI PIPELINE PASS RATE
+----------------------------------------------------------------------
+KPI ID:           KPI-001
+Name:             CI Pipeline Pass Rate
+Category:         DevOps Quality / Automated Governance
+Priority:         CRITICAL — Primary quality enforcement gate
+
+DEFINITION:
+  The percentage of GitHub Actions ci.yml workflow runs that complete
+  with all tests passing (green), measured over a rolling period.
+  A "pass" requires ALL 13 test files to complete with zero failures.
+  A "fail" is any run where one or more test files report a failure,
+  or the pipeline itself fails to complete.
+
+TARGET:           100%
+CURRENT STATUS:   GREEN (all phases 1-3 tests passing)
+MEASUREMENT PERIOD: Rolling 30-day window (current sprint)
+
+DATA SOURCE:
+  Primary:   GitHub Actions workflow execution logs
+             Location: github.com/{repo}/actions
+             Filter:   workflow: "ci.yml"
+  Secondary: GitHub API
+             GET /repos/{owner}/{repo}/actions/workflows/ci.yml/runs
+             ?status=completed&per_page=100
+             Count: (completed with conclusion=success) /
+                    (total completed) * 100
+
+CALCULATION:
+  CI_Pass_Rate = (Runs with conclusion="success") /
+                 (Total completed runs) * 100
+
+  Example:
+    30-day window: 47 total runs, 47 success, 0 failure
+    CI_Pass_Rate = 47/47 * 100 = 100% [GREEN]
+
+THRESHOLD DEFINITIONS:
+  GREEN:   100% (zero failures in period)
+  YELLOW:  95-99% (1-3 failures in 30-day period)
+  RED:     < 95% (4+ failures in 30-day period)
+
+ALERT TRIGGERS:
+  IMMEDIATE ALERT: Any single ci.yml failure
+  ESCALATION:      3 or more failures in a 7-day period
+
+WHY THIS KPI IS UNIQUE TO SOVEREIGN FORGE:
+  Sovereign Forge is the only project in the portfolio with a
+  GitHub Actions CI/CD pipeline. CI pass rate is a direct measure
+  of the automated governance layer — the quality enforcement
+  mechanism that runs on every commit. A 100% target is achievable
+  because:
+    (a) MOCK_AI=true eliminates external dependency flakiness
+    (b) 13 test files provide comprehensive coverage
+    (c) Developers cannot merge without passing CI
+
+IMPROVEMENT ACTIONS:
+  If CI pass rate falls below 100%:
+    1. Review failing test file in GitHub Actions logs
+    2. Identify root cause (code regression vs. flaky test)
+    3. Fix root cause or update test for intended behavior change
+    4. Verify fix passes locally before pushing
+    5. Confirm CI green before considering issue resolved
+----------------------------------------------------------------------
+
+
+3. KPI-002: AZURE AI EVALUATION SCORE
+----------------------------------------------------------------------
+KPI ID:           KPI-002
+Name:             Azure AI Evaluation Score
+Category:         AI Quality / Response Excellence
+Priority:         HIGH — Direct AI quality measurement
+
+DEFINITION:
+  The composite score produced by the Azure AI Evaluation SDK,
+  measuring AI response quality across three dimensions (relevance,
+  coherence, groundedness) on a 1–5 scale. Computed by running
+  evaluation/run_evaluation.py against the 90-query test dataset
+  in data/test_queries.json.
+
+TARGET:           > 4.2 / 5.0 (composite)
+CURRENT STATUS:   PENDING (Phase 4 live scoring run required)
+                  Mock mode validation: system architecture validated
+MEASUREMENT PERIOD: Per evaluation run (target: once per sprint)
+
+DATA SOURCE:
+  Primary:   evaluation/eval_results.json
+             Generated by evaluation/run_evaluation.py
+  Secondary: Azure AI Evaluation SDK execution logs
+
+SCORING DIMENSIONS:
+  Relevance     (1-5): Does the response address the user's query?
+    1 = Completely off-topic
+    2 = Mostly irrelevant with some relevant content
+    3 = Partially relevant, misses key aspects
+    4 = Mostly relevant, minor gaps
+    5 = Fully on-target, addresses all aspects of query
+
+  Coherence     (1-5): Is the response logically consistent?
+    1 = Contradictory or incomprehensible
+    2 = Mostly incoherent with some logical content
+    3 = Moderately coherent, some logical gaps
+    4 = Mostly coherent, minor inconsistencies
+    5 = Perfectly logical, no contradictions
+
+  Groundedness  (1-5): Is the response grounded in context?
+    1 = No grounding in provided context
+    2 = Minimal grounding, mostly hallucinated
+    3 = Partial grounding, some hallucinations
+    4 = Well grounded, minor unverified claims
+    5 = Fully grounded, all claims supported by context
+
+COMPOSITE CALCULATION:
+  Composite = (Relevance * 0.35) + (Coherence * 0.30) +
+              (Groundedness * 0.35)
+
+  Example achieving target:
+    Relevance    = 4.3
+    Coherence    = 4.1
+    Groundedness = 4.3
+    Composite    = (4.3*0.35) + (4.1*0.30) + (4.3*0.35)
+                 = 1.505 + 1.230 + 1.505 = 4.24 [GREEN]
+
+THRESHOLD DEFINITIONS:
+  GREEN:   > 4.2 / 5.0
+  YELLOW:  3.8 - 4.2 / 5.0
+  RED:     < 3.8 / 5.0
+
+TEST DATASET:
+  File:     data/test_queries.json
+  Count:    90 test queries
+  Categories:
+    Chat        (general conversation and knowledge queries)
+    Command     (specific task-oriented instructions)
+    Philosophy  (abstract reasoning and cognitive exploration)
+
+WHY THIS KPI IS UNIQUE TO SOVEREIGN FORGE:
+  No other project in the portfolio has the Azure AI Evaluation SDK
+  integrated. This KPI provides quantitative, objective measurement
+  of AI response quality — not subjective human assessment. The
+  90-query dataset creates a statistically meaningful sample.
+
+IMPROVEMENT ACTIONS:
+  If composite score < 4.2:
+    1. Identify lowest-scoring dimension (relevance/coherence/
+       groundedness)
+    2. Review system prompt for context injection quality
+    3. Review memory zone weighting (Crystal zone groundedness)
+    4. Review cognitive lens transformation for coherence impact
+    5. Retrain/reconfigure and re-run evaluation
+----------------------------------------------------------------------
+
+
+4. KPI-003: COGNITIVE LENS ACCURACY
+----------------------------------------------------------------------
+KPI ID:           KPI-003
+Name:             Cognitive Lens Accuracy
+Category:         AI Accessibility / Neurodivergent Experience Quality
+Priority:         HIGH — Core platform value proposition
+
+DEFINITION:
+  The percentage of cognitive lens activations (ADHD, Autism,
+  Dyslexia) that produce correctly formatted output per the lens
+  specification. Measured via the test suite (test_adhd_lens.py,
+  test_autism_lens.py, test_dyslexia_lens.py) and the orchestrator
+  status endpoint.
+
+TARGET:           > 98%
+CURRENT STATUS:   GREEN (test files present and executed by CI)
+MEASUREMENT PERIOD: Per CI execution (every commit)
+
+DATA SOURCE:
+  Primary:   tests/test_adhd_lens.py (pass/fail per test case)
+             tests/test_autism_lens.py (pass/fail per test case)
+             tests/test_dyslexia_lens.py (pass/fail per test case)
+  Secondary: GET /api/cog/status
+             Returns orchestrator status including active lens
+
+CALCULATION:
+  Lens_Accuracy = (Correct lens activations) /
+                  (Total lens activations) * 100
+
+  For test-based measurement:
+  Lens_Accuracy = (Passing lens test cases) /
+                  (Total lens test cases) * 100
+
+LENS SPECIFICATIONS (what "correct" means):
+  ADHD Lens Correct:
+    - Response is chunked into sections of <= 4 sentences
+    - First section contains the most actionable information
+    - Bullet points used for lists (not prose paragraphs)
+    - No jargon without definition
+    - Clear "next step" present in response
+
+  Autism Lens Correct:
+    - Response has explicit section headers
+    - No idioms or metaphors without literal explanation
+    - All relevant information stated explicitly (no implied info)
+    - Content follows strict logical order (premise -> evidence ->
+      conclusion)
+    - Abbreviations expanded on first use
+
+  Dyslexia Lens Correct:
+    - Line length controlled (no lines > configured maximum)
+    - Visual white space between content blocks
+    - High-contrast section separators
+    - Simple, phonologically accessible vocabulary
+    - Consistent sentence rhythm patterns
+
+THRESHOLD DEFINITIONS:
+  GREEN:   > 98% (< 2% of lens activations produce incorrect format)
+  YELLOW:  95-98%
+  RED:     < 95%
+
+ADA COMPLIANCE LINK:
+  This KPI directly measures ADA compliance for the neurodivergent
+  lens system. A GREEN status confirms the platform is providing
+  accessible formatting to neurodivergent users as designed.
+----------------------------------------------------------------------
+
+
+5. KPI-004: MEMORY ZONE CLASSIFICATION ACCURACY
+----------------------------------------------------------------------
+KPI ID:           KPI-004
+Name:             Memory Zone Classification Accuracy
+Category:         AI Cognitive Architecture / Zone Integrity
+Priority:         HIGH — Core architectural correctness
+
+DEFINITION:
+  The percentage of memory zone classifications that correctly assign
+  a memory item to the appropriate zone (Active/GREEN, Pattern/YELLOW,
+  Crystal/RED) based on the entropy calculation algorithm. Measured
+  via test_memory_zones.py (23/23 tests passing) and runtime metrics.
+
+TARGET:           > 99%
+CURRENT STATUS:   GREEN — 23/23 zone tests passing (100%)
+MEASUREMENT PERIOD: Per CI execution (every commit)
+
+DATA SOURCE:
+  Primary:   tests/test_memory_zones.py (23 tests)
+             Each test validates a specific zone classification scenario
+  Secondary: GET /api/cog/memory
+             Returns current memory zone contents and zone assignments
+  Tertiary:  Entropy calculation algorithm validation in
+             test_cognitive_orchestrator.py
+
+MEMORY ZONE DEFINITIONS:
+  Active Zone (GREEN):
+    - Contains current working context
+    - High entropy (recent, varied, actively referenced)
+    - Entropy threshold: > upper_bound (configurable)
+    - Retrieval: Immediate, always included in context window
+    - Use case: Items the user is actively working with now
+
+  Pattern Zone (YELLOW):
+    - Contains recognized recurring structures
+    - Medium entropy (seen before, less recent)
+    - Entropy threshold: lower_bound <= entropy <= upper_bound
+    - Retrieval: Associative, included when topic matches
+    - Use case: Items that appear repeatedly across sessions
+
+  Crystal Zone (RED):
+    - Contains consolidated long-term knowledge
+    - Low entropy (stable, established, deeply encoded)
+    - Entropy threshold: < lower_bound (configurable)
+    - Retrieval: Structured, included when explicitly requested
+    - Use case: Items that have been confirmed as stable knowledge
+
+ENTROPY CALCULATION:
+  The CognitiveOrchestrator computes entropy for each memory item
+  based on: recency (time since last access), frequency (access
+  count), diversity (variety of contexts accessed), and stability
+  (variance in access patterns over time). Zone boundaries are
+  configurable thresholds.
+
+CALCULATION:
+  Zone_Accuracy = (Correctly classified memory items) /
+                  (Total classified memory items) * 100
+
+  For test-based measurement:
+  Zone_Accuracy = (Passing zone test cases) /
+                  (Total zone test cases) * 100
+                = 23/23 * 100 = 100% [GREEN]
+
+THRESHOLD DEFINITIONS:
+  GREEN:   > 99% (< 1% misclassification rate)
+  YELLOW:  96-99%
+  RED:     < 96%
+
+IMPACT OF MISCLASSIFICATION:
+  Active item in Crystal zone: User receives outdated context
+                               instead of current information
+  Crystal item in Active zone: Context window bloated with stable
+                               knowledge, reducing AI relevance
+  Pattern item misclassified:  Associative retrieval fails to
+                               surface relevant recurring patterns
+----------------------------------------------------------------------
+
+
+6. KPI-005: API UPTIME SLA
+----------------------------------------------------------------------
+KPI ID:           KPI-005
+Name:             API Uptime SLA
+Category:         Availability / Infrastructure Reliability
+Priority:         HIGH — Service continuity commitment
+
+DEFINITION:
+  The percentage of time the Sovereign Forge API is available and
+  responsive to health check requests. Measured by the liveness
+  probe (GET /api/healthz returning HTTP 204) and the readiness
+  probe (GET /api/readyz returning HTTP 200).
+
+TARGET:           99.9% uptime
+                  Equivalent to: 8.76 hours downtime per year,
+                                 44 minutes per month,
+                                 10 minutes per week
+CURRENT STATUS:   GREEN (Azure App Service deployed, VR Studios live)
+MEASUREMENT PERIOD: Continuous (rolling 30-day window)
+
+DATA SOURCE:
+  Primary:   GET /api/healthz (liveness probe)
+             Expected response: HTTP 204 No Content
+             Polling interval: Every 30 seconds (configurable)
+  Secondary: GET /api/readyz (readiness probe)
+             Expected response: HTTP 200 with JSON summary
+  Tertiary:  Azure App Service health check metrics
+             (Azure Monitor integration)
+
+UPTIME CALCULATION:
+  Uptime_SLA = (Total time - Downtime) / Total time * 100
+
+  Monthly example:
+    Total time:   43,200 minutes (30 days)
+    Downtime:     0 minutes (Azure App Service + mock fallback)
+    Uptime_SLA:   43,200/43,200 * 100 = 100% [GREEN]
+
+DEGRADED MODE CONSIDERATION:
+  When Azure OpenAI is unavailable but MOCK_AI=true is active,
+  the API is considered AVAILABLE (liveness = UP) but DEGRADED
+  (readiness = WARNING). Uptime SLA counts degraded-mode as UP
+  since the service is responding to requests.
+
+AVAILABILITY LAYERS:
+  Layer 1: Azure App Service auto-restart on process failure
+  Layer 2: MOCK_AI=true degrades gracefully on AOAI outage
+  Layer 3: Mock cosmos_repo fallback on Cosmos DB outage
+  Layer 4: Docker containerization for rapid manual restart
+
+THRESHOLD DEFINITIONS:
+  GREEN:   >= 99.9% (< 44 min/month downtime)
+  YELLOW:  99.0-99.9% (44 min - 7.2 hr/month downtime)
+  RED:     < 99.0% (> 7.2 hours/month downtime)
+
+ALERT TRIGGERS:
+  IMMEDIATE: /api/healthz returns non-204 for 3 consecutive checks
+  ESCALATION: Downtime exceeds 10 minutes in any 24-hour period
+----------------------------------------------------------------------
+
+
+7. KPI-006: WEBSOCKET EVENT DELIVERY RATE
+----------------------------------------------------------------------
+KPI ID:           KPI-006
+Name:             WebSocket Event Delivery Rate
+Category:         Reliability / Real-Time Communication
+Priority:         MEDIUM-HIGH — Real-time feature integrity
+
+DEFINITION:
+  The percentage of EventBus events that are successfully delivered
+  to all active WebSocket subscribers via the /ws/sync endpoint.
+  An event is considered "delivered" when it is serialized to NDJSON
+  and written to all active WebSocket connections without error.
+
+TARGET:           100% delivery rate
+CURRENT STATUS:   GREEN (in-process EventBus eliminates network
+                  delivery failures)
+MEASUREMENT PERIOD: Continuous (per event)
+
+DATA SOURCE:
+  Primary:   GET /api/metrics (compact JSON metrics)
+             Metrics include: events_published, events_delivered,
+             active_ws_connections, delivery_failures
+  Secondary: GET /api/metrics/prom (Prometheus export)
+             Metrics: qnf_bus_* counters for event tracking
+  Tertiary:  tests/test_ws_api.py (delivery validation tests)
+             tests/test_eventbus.py (pub/sub delivery tests)
+
+CALCULATION:
+  WS_Delivery_Rate = (Events delivered successfully) /
+                     (Events published to EventBus) * 100
+
+EVENT TYPES MEASURED:
+  cog.intent:    Cognitive processing result events
+                 Published when POST /api/cog/process completes
+  sync.update:   Tri-node state synchronization events
+                 Published when POST /api/sync/update is called
+
+DELIVERY FAILURE SCENARIOS:
+  Scenario 1: WebSocket connection drops mid-delivery
+    Impact:    Event lost for that subscriber
+    Mitigation: Client reconnects and re-subscribes; missed events
+                are not replayed (stateless delivery model)
+
+  Scenario 2: Serialization error in event payload
+    Impact:    Event not delivered to any subscriber
+    Mitigation: Pydantic schema validation before publishing;
+                error_handler.py catches serialization failures
+
+  Scenario 3: Subscriber overwhelmed (slow consumer)
+    Impact:    Events queued; potential delivery delay
+    Mitigation: EventBus in-process delivery is faster than network;
+                slow consumer detection triggers connection close
+
+WHY TARGET IS 100%:
+  The EventBus is in-process — no network call is involved in
+  event delivery between the EventBus publisher and the WebSocket
+  broadcaster subscriber. Network failures can only occur between
+  the WebSocket broadcaster and the external client, which are
+  handled by the WebSocket protocol's built-in error detection.
+
+THRESHOLD DEFINITIONS:
+  GREEN:   100% (zero delivery failures)
+  YELLOW:  99.0-99.9% (< 1% failure rate)
+  RED:     < 99.0% (> 1% failure rate)
+----------------------------------------------------------------------
+
+
+8. KPI-007: GLYPH SEED MATCH PRECISION
+----------------------------------------------------------------------
+KPI ID:           KPI-007
+Name:             Glyph Seed Match Precision
+Category:         AI Feature Quality / Symbolic Processing
+Priority:         MEDIUM — Glyph intelligence feature quality
+
+DEFINITION:
+  The percentage of glyph interpretation requests where the fuzzy
+  matching algorithm correctly identifies the intended glyph token
+  from an imprecise or abbreviated input sequence. Precision measures
+  how often the top fuzzy match result is the correct token.
+
+TARGET:           > 95% precision
+CURRENT STATUS:   GREEN (glyph processor tests passing; fuzzy
+                  matcher validated in test_glyph_processor.py)
+MEASUREMENT PERIOD: Per interpretation request (aggregated daily)
+
+DATA SOURCE:
+  Primary:   POST /api/glyphs/interpret responses
+             Endpoint: POST /api/glyphs/interpret
+             Input:    {sequence: "APEX->CORE->EMIT"}
+             Output:   {tokens: [...], topics: [...], route: {...}}
+  Secondary: tests/test_glyph_processor.py
+             Validates fuzzy matcher against known correct outputs
+  Tertiary:  GET /api/glyphs/aliases
+             Alias map defines the ground truth for correct matches
+
+FUZZY MATCHING ALGORITHM:
+  The glyph seed fuzzy matcher applies the following steps:
+    Step 1: Normalize input (uppercase, strip whitespace)
+    Step 2: Exact match check against alias map
+    Step 3: If no exact match, compute fuzzy similarity score
+            against all registered glyph tokens
+    Step 4: Return top match if similarity score >= threshold
+    Step 5: Reject if no match meets threshold
+
+PRECISION vs. RECALL TRADE-OFF:
+  The fuzzy matcher is calibrated for precision over recall:
+  - Better to reject an uncertain match than to return a wrong token
+  - Rejected matches prompt the user to use the validation endpoint
+  - High precision protects against glyph seed injection (RISK-007)
+
+CALCULATION:
+  Glyph_Precision = (Correct top-match predictions) /
+                    (Total fuzzy match attempts) * 100
+
+  Calculation excludes:
+  - Exact matches (always 100% precise)
+  - Explicitly rejected inputs (not a precision failure)
+
+THRESHOLD DEFINITIONS:
+  GREEN:   > 95% precision
+  YELLOW:  90-95% precision
+  RED:     < 90% precision
+
+IMPROVEMENT ACTIONS:
+  If precision falls below 95%:
+    1. Review recent incorrect matches in interpretation logs
+    2. Add new aliases to alias map for commonly mismatched tokens
+    3. Adjust fuzzy match threshold (higher threshold = higher
+       precision, lower recall)
+    4. Update data/glyphs_pack.json with refined alias definitions
+    5. Re-run test_glyph_processor.py to validate improvements
+----------------------------------------------------------------------
+
+
+9. KPI-008: RELEASE CADENCE
+----------------------------------------------------------------------
+KPI ID:           KPI-008
+Name:             Release Cadence
+Category:         DevOps Velocity / Delivery Rhythm
+Priority:         MEDIUM — Delivery consistency tracking
+
+DEFINITION:
+  The number of GitHub Releases published via the automated
+  release.yml pipeline per sprint. Each GitHub Release corresponds
+  to a pushed version tag (semantic versioning: MAJOR.MINOR.PATCH)
+  that triggers release.yml.
+
+TARGET:           >= 1 release per sprint (minimum)
+                  Optimal target: 1-2 releases per sprint
+CURRENT STATUS:   TRACKING — Phase 1-3 releases completed;
+                  Phase 4 release cadence to be measured per sprint
+MEASUREMENT PERIOD: Per sprint (bi-weekly)
+
+DATA SOURCE:
+  Primary:   GitHub Releases page
+             github.com/{repo}/releases
+             Count of releases per sprint period
+  Secondary: GitHub Actions release.yml execution history
+             github.com/{repo}/actions/workflows/release.yml
+  Tertiary:  Git tag history
+             git tag -l --sort=version:refname
+
+RELEASE TRACKING TABLE:
+  Sprint        Version Tag    Release Date    Release Type
+  ---------     -----------    ------------    ------------
+  Phase 1       v1.0.0         (Phase 1 date)  Platform Core
+  Phase 2       v1.1.0         (Phase 2 date)  Wiring + Integration
+  Phase 3       v2.0.0         (Phase 3 date)  VR Studios Pilot
+  Phase 4-SP1   v2.1.0         (Planned)       Multi-Tenant Alpha
+  Phase 4-SP2   v2.2.0         (Planned)       Agent Swarms Alpha
+
+RELEASE TYPES:
+  MAJOR (X.0.0): Significant architecture change or new platform
+                 capability (e.g., multi-tenant, agent swarms)
+  MINOR (X.Y.0): New feature or capability addition within
+                 existing architecture
+  PATCH (X.Y.Z): Bug fix or security patch release
+  All release types count equally toward KPI-008 target.
+
+WHY THIS KPI IS UNIQUE TO SOVEREIGN FORGE:
+  Only Sovereign Forge has an automated release pipeline (release.yml)
+  that creates traceable GitHub Releases. In other projects, release
+  tracking is manual and inconsistent. Here, release cadence is
+  objectively measurable because every release goes through the
+  automated pipeline and creates a permanent GitHub Release record.
+
+CALCULATION:
+  Release_Cadence = Count of GitHub Releases in sprint period
+
+  Sprint example:
+    Sprint length: 14 days
+    Releases in period: 1 (v2.1.0 published on day 12)
+    Release_Cadence = 1 [GREEN]
+
+THRESHOLD DEFINITIONS:
+  GREEN:   >= 1 release per sprint
+  YELLOW:  0 releases in sprint but prior sprint had >= 1
+           (may indicate in-progress development)
+  RED:     0 releases in 2 consecutive sprints
+           (indicates blocked delivery)
+
+BLOCKED RELEASE MITIGATIONS:
+  If release.yml fails:
+    1. Review GitHub Actions release.yml logs for failure reason
+    2. Fix identified issue (build error, artifact upload failure)
+    3. Re-push release tag to trigger new release.yml run
+    4. If release.yml consistently fails, manual Docker deployment
+       is available as emergency fallback
+
+RELEASE QUALITY GATE (prerequisite to release.yml trigger):
+  1. All 13 test files passing in ci.yml
+  2. smoke_test.py passing
+  3. deep_clean.ps1 executed successfully
+  4. cleanup_artifacts.ps1 executed
+  5. eval_results.json reviewed (advisory — not blocking for patch)
+----------------------------------------------------------------------
+
+
+10. KPI COMPOSITE SCORECARD
+----------------------------------------------------------------------
+As of 2026-04-24 (v001 baseline):
+
+KPI-ID   Name                          Target        Status   Trend
+----------------------------------------------------------------------
+KPI-001  CI Pipeline Pass Rate         100%          GREEN    STABLE
+KPI-002  Azure AI Evaluation Score     > 4.2/5.0     PENDING  N/A
+KPI-003  Cognitive Lens Accuracy       > 98%         GREEN    STABLE
+KPI-004  Memory Zone Classification    > 99%         GREEN    STABLE
+         Accuracy                      (23/23 pass)
+KPI-005  API Uptime SLA                99.9%         GREEN    STABLE
+KPI-006  WebSocket Event Delivery      100%          GREEN    STABLE
+KPI-007  Glyph Seed Match Precision    > 95%         GREEN    STABLE
+KPI-008  Release Cadence               >= 1/sprint   GREEN    TRACKING
+----------------------------------------------------------------------
+Overall Platform Health:   7/8 GREEN, 1/8 PENDING
+Platform Status:           HEALTHY — Phase 4 targets in scope
+
+Notes:
+  KPI-002 is PENDING because eval_results.json has not been populated
+  with live Azure AI Evaluation SDK scoring data. This is a known
+  Phase 4 deliverable (see RISK-010 in SOVEREIGN-RISK-REGISTER-001).
+  The evaluation pipeline code is complete and validated in mock mode.
+
+  KPI-008 is GREEN for phases 1-3. Active sprint tracking begins
+  with Phase 4 sprint planning.
+----------------------------------------------------------------------
+
+
+11. MEASUREMENT INFRASTRUCTURE
+----------------------------------------------------------------------
+The following infrastructure components provide the raw data for
+KPI measurement:
+
+GITHUB ACTIONS INFRASTRUCTURE (KPI-001, KPI-008)
+  - GitHub Actions API: GET /repos/{owner}/{repo}/actions/runs
+  - Workflow filter: workflow_id = ci.yml or release.yml
+  - Conclusion filter: success / failure / cancelled
+  - Rate limit: 5,000 API calls per hour (sufficient for measurement)
+
+API METRICS INFRASTRUCTURE (KPI-005, KPI-006)
+  - GET /api/healthz — liveness check (HTTP 204)
+  - GET /api/readyz — readiness check (HTTP 200)
+  - GET /api/metrics — compact JSON metrics
+  - GET /api/metrics/prom — Prometheus format for time-series
+
+PROMETHEUS METRICS (KPI-006)
+  Available Prometheus metrics from GET /api/metrics/prom:
+    qnf_bus_events_total          — Total events published to EventBus
+    qnf_bus_events_delivered      — Total events delivered to WebSocket
+    qnf_bus_delivery_failures     — Total delivery failures
+    qnf_intent_count              — Total intents processed
+    qnf_topic_count               — Total unique topics
+    qnf_threads_total             — Total active threads
+    qnf_resonance_*               — Resonance metric family
+
+TEST SUITE INFRASTRUCTURE (KPI-003, KPI-004)
+  - pytest tests/ -v — full test suite execution
+  - pytest tests/test_memory_zones.py -v — zone-specific
+  - pytest tests/test_adhd_lens.py tests/test_autism_lens.py
+           tests/test_dyslexia_lens.py -v — lens-specific
+  - All test results available in GitHub Actions ci.yml logs
+
+EVALUATION INFRASTRUCTURE (KPI-002)
+  - evaluation/collect_responses.py — response collection
+  - evaluation/run_evaluation.py — Azure AI Evaluation scoring
+  - evaluation/eval_results.json — scored results output
+  - data/test_queries.json — 90-query test dataset
+----------------------------------------------------------------------
+
+
+12. REPORTING SCHEDULE
+----------------------------------------------------------------------
+DAILY REPORTING (automated via monitoring):
+  KPI-001: CI pass rate check (any failure triggers immediate alert)
+  KPI-005: API uptime check (any downtime triggers immediate alert)
+  KPI-006: WebSocket delivery rate (any failure triggers alert)
+
+SPRINT REPORTING (bi-weekly, at sprint review):
+  All 8 KPIs reviewed in composite scorecard format
+  Trend analysis: compare to previous sprint values
+  RED or YELLOW KPIs require root cause analysis in sprint review
+  Next sprint targets updated based on trend
+
+PHASE GATE REPORTING (at each SDLC phase gate):
+  Full KPI audit across all 8 indicators
+  Historical trend analysis since project inception
+  Compliance officer review of KPI-003 (ADA compliance link)
+  Executive summary of platform health
+
+REPORTS DELIVERED TO:
+  Sprint Review:      Lead Engineer + Platform Architect
+  Phase Gate:         All stakeholders + Executive sponsor
+  Security Incidents: Security Officer (KPI-001 failures that
+                      indicate security-related code changes)
+----------------------------------------------------------------------
+
+
+13. KPI IMPROVEMENT TARGETS (PHASE 4)
+----------------------------------------------------------------------
+Phase 4 introduces new measurement capabilities and tightens targets:
+
+KPI-002 Enhancement:
+  Current:    PENDING (mock mode validated)
+  Phase 4:    Fully operational with live Azure AI scoring
+  New Target: > 4.2/5.0 composite (same target, now measurable)
+  Enhancement: Automated evaluation run on every release (not just
+               per sprint) — KPI-002 becomes continuous in Phase 4
+
+KPI-001 Enhancement:
+  Current:    100% (manual review of failures)
+  Phase 4:    100% + automated Slack/Teams notification on any failure
+  Enhancement: Failure notification within 5 minutes of failed run
+
+KPI-003 Enhancement:
+  Current:    > 98% (test-based measurement)
+  Phase 4:    > 98% (adds runtime measurement from production events)
+              Production lens activation events logged (without
+              PII) and analyzed for accuracy
+
+KPI-005 Enhancement:
+  Current:    99.9% target (Azure App Service)
+  Phase 4:    99.9% target maintained for multi-tenant
+              Each tenant's uptime tracked independently
+
+KPI-008 Enhancement:
+  Current:    >= 1/sprint
+  Phase 4:    Separate release streams per major tenant
+              VR Studios release cadence + Medical App cadence
+              tracked independently
+----------------------------------------------------------------------
+
+
+14. DOCUMENT CONTROL
+----------------------------------------------------------------------
+Document ID:      SOVEREIGN-KPI-DASHBOARD-001
+Version:          v001
+Created:          2026-04-24
+Author:           Engineering Office, Sovereign Forge Program
+Owner:            Lead Engineer
+Review Authority: Platform Architect + Product Owner
+Distribution:     Engineering, Product, Executive
+
+KPI values should be updated at each sprint review. New version
+(v002+) required for any change to KPI definitions, targets, or
+measurement methodology.
+
+Next Review:      2026-05-08
+
+Change Log:
+  v001 | 2026-04-24 | Initial creation. 8 KPIs defined with full
+       |            | measurement methodology, data sources,
+       |            | thresholds, and improvement actions.
+       |            | Composite scorecard baseline established.
+----------------------------------------------------------------------
+
+
+================================================================================
+END OF DOCUMENT: SOVEREIGN-KPI-DASHBOARD-001_2026-04-24_v001.txt
+Classification: Enterprise Internal — Controlled Distribution
+Total Sections: 14 | Approx. Lines: 370+
+================================================================================

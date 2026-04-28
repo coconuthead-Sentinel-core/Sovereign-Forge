@@ -1,0 +1,963 @@
+================================================================================
+SOVEREIGN FORGE — ENTERPRISE AI COGNITIVE PLATFORM
+INFORMATION SECURITY PLAN
+
+Document ID:     SOVEREIGN-SECURITY-PLAN-001
+Revision:        v001
+Date:            2026-04-24
+Classification:  Enterprise Internal — Controlled Distribution
+Author:          Security Office, Sovereign Forge Program
+Status:          ACTIVE — AUTHORITATIVE
+================================================================================
+
+TABLE OF CONTENTS
+----------------------------------------------------------------------
+  1.  Executive Security Summary
+  2.  Security Architecture Overview
+  3.  API Authentication and Authorization
+  4.  GitHub Actions Security (CI/CD Pipeline)
+  5.  Credential and Secrets Management
+  6.  Production Cleanup and Artifact Security
+  7.  Container Security
+  8.  Azure Cloud Security
+  9.  WebSocket Security
+  10. EventBus Isolation
+  11. Glyph Input Validation
+  12. STRIDE Threat Model
+  13. Data Classification and Protection
+  14. Cognitive Profile Privacy
+  15. Dependency Security
+  16. Incident Response Plan
+  17. Security Testing Matrix
+  18. Document Control
+----------------------------------------------------------------------
+
+
+1. EXECUTIVE SECURITY SUMMARY
+----------------------------------------------------------------------
+Sovereign Forge — Enterprise AI Cognitive Platform implements a
+defense-in-depth security architecture across six distinct layers:
+
+  LAYER 1: API Authentication — X-API-Key header guard at all
+           protected endpoints (backend/core/security.py)
+
+  LAYER 2: CI/CD Security — GitHub Actions secrets management
+           prevents credential exposure in automated pipelines
+
+  LAYER 3: Artifact Security — deep_clean.ps1 and
+           cleanup_artifacts.ps1 remove credentials and artifacts
+           before every release
+
+  LAYER 4: Container Security — .dockerignore prevents secrets from
+           entering container images; Dockerfile follows minimal
+           image principles
+
+  LAYER 5: Input Validation — Pydantic v2 validation on all
+           API inputs; glyph sequence validation endpoint
+
+  LAYER 6: Data Protection — Cosmos DB encryption at rest;
+           cognitive profile data excluded from logs
+
+The platform's most distinctive security property is the integration
+of security enforcement directly into the CI/CD pipeline. Security
+is not a manual checklist step — it is an automated gate that runs
+on every commit.
+
+The api_key_guard() function in backend/core/security.py is the
+authoritative access control enforcement point. Its implementation
+is deliberately minimal and auditable:
+
+  from fastapi import Header, HTTPException, status, Depends
+  from .config import settings
+
+  def api_key_guard(x_api_key: str = Header(..., alias="X-API-Key")) -> None:
+      if not settings.API_KEY or x_api_key != settings.API_KEY:
+          raise HTTPException(
+              status_code=status.HTTP_401_UNAUTHORIZED,
+              detail="Invalid API key"
+          )
+
+This implementation:
+  - Requires the X-API-Key header on every protected request
+  - Returns HTTP 401 (not 403) to avoid disclosing whether the
+    resource exists
+  - Reads the API key from settings (Pydantic Settings / environment
+    variable), never from hardcoded source
+  - Has no secret bypass logic or debugging backdoor
+----------------------------------------------------------------------
+
+
+2. SECURITY ARCHITECTURE OVERVIEW
+----------------------------------------------------------------------
+The security architecture follows the principle of least privilege
+at every layer. No component has broader access than required for
+its function.
+
+COMPONENT SECURITY MODEL:
+
+  FastAPI Application (app/main.py)
+    - Runs as non-root user in Docker container
+    - Listens on configured port only
+    - All routes are protected by api_key_guard() except:
+        GET /api/healthz — liveness probe (unauthenticated)
+        GET /api/readyz  — readiness probe (unauthenticated)
+        /ws/sync         — WebSocket (X-API-Key in handshake)
+
+  Azure OpenAI Adapter (backend/adapters/azure_openai.py)
+    - Credentials injected via AOAI_ENDPOINT environment variable
+    - Supports Azure Active Directory (AAD) authentication
+    - No credentials in source code or container image
+    - MOCK_AI=true flag bypasses Azure OpenAI entirely for development
+
+  Cosmos DB Repository (backend/infrastructure/cosmos_repo.py)
+    - Connection string injected via environment variable
+    - Mock fallback mode requires no credentials
+    - Encryption at rest managed by Azure
+
+  EventBus (backend/eventbus.py)
+    - In-process only — no network exposure
+    - Events do not cross process boundary
+    - Cannot be accessed from external network
+
+  CognitiveOrchestrator
+    - Processes only inputs validated by Pydantic schemas
+    - Zone classification uses deterministic entropy calculation
+    - No external API calls from orchestrator layer
+
+NETWORK SECURITY BOUNDARIES:
+
+  EXTERNAL ZONE (Internet-facing):
+    - Azure App Service: HTTPS only (TLS 1.2+ enforced by Azure)
+    - API endpoints protected by X-API-Key guard
+    - WebSocket upgrade requires X-API-Key in initial handshake
+
+  AZURE ZONE (Private Azure network):
+    - Azure OpenAI: accessed via private endpoint where possible
+    - Cosmos DB: accessed via Azure private link preferred
+    - App Service Managed Identity for Azure service-to-service auth
+
+  INTERNAL ZONE (In-process):
+    - EventBus: pub/sub within process, no network
+    - CognitiveOrchestrator: in-memory processing
+    - Mock adapters: in-memory, no network calls
+----------------------------------------------------------------------
+
+
+3. API AUTHENTICATION AND AUTHORIZATION
+----------------------------------------------------------------------
+AUTHENTICATION MECHANISM
+----------------------------------------------------------------------
+Protocol:         HTTP Header Authentication
+Header Name:      X-API-Key
+Header Alias:     X-API-Key (FastAPI alias for the header parameter)
+Implementation:   backend/core/security.py :: api_key_guard()
+
+Authentication Flow:
+  1. Client sends HTTP request with X-API-Key: <key> header
+  2. FastAPI dependency injection invokes api_key_guard()
+  3. api_key_guard() retrieves settings.API_KEY from environment
+  4. If settings.API_KEY is not set (empty), all keys are rejected
+  5. If x_api_key != settings.API_KEY, HTTP 401 is raised
+  6. If authentication passes, the route handler executes
+  7. If authentication fails, HTTP 401 with "Invalid API key" detail
+
+Security Properties:
+  - Constant-time string comparison prevents timing attacks
+    (Python string == comparison is not constant-time; production
+    hardening should use hmac.compare_digest for Phase 4)
+  - HTTP 401 response reveals no information about resource existence
+  - No authentication bypass logic exists in the codebase
+  - API_KEY is read from environment — rotation requires only
+    environment variable update, no code change
+
+AUTHORIZATION MODEL
+----------------------------------------------------------------------
+Current Model:    Single-tier — authenticated users have full access
+                  to all API endpoints
+
+Phase 4 Target:   Role-based access control (RBAC) for multi-tenant
+  - Tenant Admin: Full access to their tenant's data
+  - Tenant User:  Read/write access to cognitive and glyph endpoints
+  - System Admin: Cross-tenant observability (metrics only)
+
+PROTECTED ENDPOINTS
+----------------------------------------------------------------------
+The following endpoints require X-API-Key authentication:
+
+  POST /api/cog/process       — Cognitive processing
+  GET  /api/cog/status        — Orchestrator status
+  GET  /api/cog/rules         — Rule retrieval
+  PUT  /api/cog/rules         — Rule update
+  GET  /api/cog/memory        — Memory retrieval
+  DELETE /api/cog/memory      — Memory purge
+  GET  /api/cog/prime         — Prime metrics
+  GET  /api/cog/suggest       — Suggested rules
+  GET  /api/cog/threads       — Thread listing
+  GET  /api/cog/threads/{id}  — Thread detail
+  GET  /api/cog/stats         — Intent/topic stats
+  GET  /api/cog/seeds         — Seed retrieval
+  POST /api/cog/seeds         — Seed upsert
+  GET  /api/cog/matrix        — Token matrix
+  GET  /api/glyphs/aliases    — Alias map
+  POST /api/glyphs/pack       — Bulk seed/rule/alias
+  POST /api/glyphs/interpret  — Sequence interpretation
+  POST /api/sync/update       — Tri-node state update
+  GET  /api/sync/snapshot     — Session snapshot
+  GET  /api/sync/trinode      — Role presence
+  POST /api/glyphs/validate   — Sequence validation
+  GET  /api/glyphs/boot       — Boot steps
+  POST /api/stress            — Stress test (admin only)
+  GET  /api/jobs/{job_id}     — Async job status
+  GET  /api/metrics           — System metrics
+  GET  /api/metrics/prom      — Prometheus export
+  GET  /api/status            — System status
+  /ws/sync                    — WebSocket stream
+
+UNAUTHENTICATED ENDPOINTS (Design Decision)
+----------------------------------------------------------------------
+  GET /api/healthz — Returns HTTP 204. Liveness probe for Azure App
+                     Service health check. No sensitive data.
+  GET /api/readyz  — Returns HTTP 200 with summary. Readiness probe.
+                     Summary data is not sensitive.
+
+Security Rationale: Load balancers and health check systems cannot
+authenticate. Unauthenticated health endpoints are industry standard
+practice (Kubernetes, Azure, AWS all use this pattern).
+----------------------------------------------------------------------
+
+
+4. GITHUB ACTIONS SECURITY (CI/CD PIPELINE)
+----------------------------------------------------------------------
+The GitHub Actions CI/CD pipeline introduces unique security
+considerations not present in non-CI/CD projects. Sovereign Forge
+addresses all of them explicitly.
+
+CI/CD SECURITY ARCHITECTURE (.github/workflows/ci.yml)
+----------------------------------------------------------------------
+THREAT: Secrets exposure in workflow logs
+CONTROL:
+  - All API credentials stored as GitHub Repository Secrets
+  - Secrets are referenced by name in workflow YAML
+    (e.g., ${{ secrets.AZURE_OPENAI_KEY }})
+  - GitHub Actions automatically masks secret values in logs
+    (replaces with ***)
+  - MOCK_AI=true is used in CI — no real API keys required for
+    testing, eliminating credential exposure risk entirely
+
+THREAT: Malicious pull request executing CI with access to secrets
+CONTROL:
+  - Repository is private (not public) for production credentials
+  - Pull requests from forks do not have access to repository secrets
+    by default in GitHub Actions
+  - Only push events and PR events from same repository trigger
+    full CI with secrets access
+
+THREAT: Dependency substitution in CI environment
+CONTROL:
+  - requirements.txt pins all dependency versions
+  - pip install uses pinned versions, not floating ranges
+  - CI environment is ephemeral — fresh container on each run
+  - No cached pip packages persist between runs (or explicit cache
+    with hash validation if caching is enabled)
+
+THREAT: Workflow file tampering
+CONTROL:
+  - ci.yml and release.yml are version-controlled in the same
+    repository as source code
+  - Changes to workflow files trigger CI like any other code change
+  - Branch protection on main prevents direct push without review
+
+WORKFLOW PERMISSIONS (ci.yml)
+----------------------------------------------------------------------
+Recommended permissions configuration (principle of least privilege):
+
+  permissions:
+    contents: read          # Read source code
+    checks: write           # Write CI check results
+    pull-requests: read     # Read PR information for reporting
+
+  Note: release.yml requires additional permissions:
+    contents: write         # Create GitHub Release and upload assets
+
+RELEASE PIPELINE SECURITY (release.yml)
+----------------------------------------------------------------------
+THREAT: Unauthenticated release artifact publishing
+CONTROL:
+  - release.yml is triggered only by version tag pushes
+  - Only repository admins can push tags to main
+  - GitHub Release creation requires GITHUB_TOKEN (automatically
+    provided by GitHub, limited to repository scope)
+
+THREAT: Release artifacts containing credentials
+CONTROL:
+  - deep_clean.ps1 MUST be executed before pushing release tag
+  - Cleanup removes all .env files, cached credentials, and
+    temporary files that could be included in archives
+  - .gitignore prevents credential files from being tracked
+
+THREAT: Tampered release artifacts
+CONTROL:
+  - Release artifacts are created within GitHub Actions environment
+    (not uploaded from developer workstation)
+  - Artifact SHA is recorded in GitHub Release metadata
+  - Docker image digest provides content-addressable integrity
+
+COPILOT INSTRUCTIONS SECURITY (.github/copilot-instructions.md)
+----------------------------------------------------------------------
+The copilot-instructions.md file governs AI agent behavior when
+working on the Sovereign Forge codebase. Security-relevant
+instructions include:
+  - AI agents must not suggest hardcoding credentials
+  - AI agents must not bypass the api_key_guard() security function
+  - AI agents must follow the established security patterns in
+    backend/core/security.py
+----------------------------------------------------------------------
+
+
+5. CREDENTIAL AND SECRETS MANAGEMENT
+----------------------------------------------------------------------
+CREDENTIAL INVENTORY
+----------------------------------------------------------------------
+Credential                 Storage Location        Rotation Process
+----------------------------------------------------------------------
+API_KEY                    Environment variable /  Update env var;
+(X-API-Key auth)           GitHub Secret           restart application
+
+AOAI_ENDPOINT              Environment variable /  Update env var;
+(Azure OpenAI URL)         GitHub Secret           restart application
+
+Azure OpenAI API Key       Environment variable /  Azure portal;
+                           GitHub Secret           update env var
+
+Cosmos DB Connection       Environment variable /  Azure portal;
+String                     GitHub Secret           update env var
+
+COSMOS_KEY                 Environment variable    Azure portal key
+                                                   rotation
+
+SECRETS MANAGEMENT RULES
+----------------------------------------------------------------------
+RULE 1: Zero Source Code Credentials
+  No credential of any type may be present in any source file.
+  This includes:
+    - Python source files (.py)
+    - Configuration files (.yml, .yaml, .json, .toml)
+    - Shell scripts (.ps1, .sh)
+    - Documentation files (.md, .txt)
+    - Test files (tests/*.py)
+    - Jupyter notebooks (.ipynb)
+  Enforcement: .gitignore + deep_clean.ps1 + ci.yml audit step
+
+RULE 2: Environment Variable Injection Only
+  All credentials are loaded via Pydantic Settings in
+  backend/core/config.py. The settings object reads from environment
+  variables using the python-dotenv pattern for local development
+  and GitHub Secrets for CI/CD.
+
+RULE 3: Mock Mode for Non-Production
+  MOCK_AI=true enables full platform operation without real
+  credentials. Development, testing, and CI always use mock mode.
+  Real credentials are only injected in production (Azure App Service)
+  and staging environments.
+
+RULE 4: Pre-Release Credential Audit
+  deep_clean.ps1 performs a credential pattern scan before release.
+  The script checks for common credential patterns:
+    - Strings matching "sk-" (OpenAI key prefix)
+    - Strings matching "AccountEndpoint=" (Cosmos connection string)
+    - .env file presence
+    - Any file containing "API_KEY=" with a non-empty value
+
+RULE 5: GitHub Secrets Naming Convention
+  All GitHub Secrets follow the SCREAMING_SNAKE_CASE naming pattern
+  matching the environment variable names in config.py:
+    AZURE_OPENAI_KEY
+    COSMOS_DB_CONNECTION_STRING
+    API_KEY
+  This ensures 1:1 mapping between secret names and config variables.
+----------------------------------------------------------------------
+
+
+6. PRODUCTION CLEANUP AND ARTIFACT SECURITY
+----------------------------------------------------------------------
+DEEP_CLEAN.PS1 — COMPREHENSIVE PRE-RELEASE CLEANUP
+----------------------------------------------------------------------
+File:     scripts/deep_clean.ps1
+Purpose:  Remove all potentially sensitive artifacts before release
+          packaging. This is Security Gate 4 in the quality framework.
+
+Cleanup Actions:
+  Phase 1 — Python Artifacts:
+    Remove-Item -Recurse __pycache__/
+    Remove-Item -Recurse .pytest_cache/
+    Remove-Item *.pyc (all Python bytecode)
+    Remove-Item *.pyo (optimized bytecode)
+
+  Phase 2 — Build Artifacts:
+    Remove-Item -Recurse build/
+    Remove-Item -Recurse dist/
+    Remove-Item -Recurse *.egg-info/
+
+  Phase 3 — Credential Files:
+    Remove-Item .env (local environment file)
+    Remove-Item .env.local
+    Remove-Item .env.production (if present locally)
+    Remove-Item *.key (any key files)
+
+  Phase 4 — Evaluation Cache:
+    Clear partial evaluation runs from evaluation/
+    Reset eval_results.json to empty state (prevents stale
+    results from being included in release)
+
+  Phase 5 — IDE and Temp Files:
+    Remove-Item -Recurse .vscode/settings.json.bak
+    Remove-Item *.log (log files)
+    Remove-Item *.tmp (temporary files)
+
+  Phase 6 — Credential Scan:
+    Scan tracked files for credential patterns
+    Halt and alert if any credentials are detected
+    Operator must manually inspect and resolve before proceeding
+
+CLEANUP_ARTIFACTS.PS1 — TARGETED ARTIFACT REMOVAL
+----------------------------------------------------------------------
+File:     scripts/cleanup_artifacts.ps1
+Purpose:  Lighter-weight cleanup for use after development sessions.
+          Does not perform full credential scan (use deep_clean.ps1
+          before releases).
+
+Cleanup Actions:
+  - Docker build cache (docker system prune -f)
+  - Local test run log files
+  - Temporary API response caches
+  - Notebook checkpoint files (.ipynb_checkpoints/)
+
+WHEN TO RUN:
+  cleanup_artifacts.ps1: After each development session
+  deep_clean.ps1:         Before EVERY release tag push
+----------------------------------------------------------------------
+
+
+7. CONTAINER SECURITY
+----------------------------------------------------------------------
+DOCKERFILE SECURITY
+----------------------------------------------------------------------
+File:     Dockerfile
+Security Principles:
+
+  BASE IMAGE SELECTION:
+    - Use official Python slim base image (python:3.13-slim)
+    - Slim variant minimizes attack surface
+    - Pin to specific version tag (not :latest) for reproducibility
+
+  NON-ROOT USER:
+    - Application runs as non-root user inside container
+    - RUN adduser --disabled-password --gecos "" appuser
+    - USER appuser (before CMD/ENTRYPOINT)
+
+  MINIMAL LAYERS:
+    - COPY requirements.txt first (Docker layer caching)
+    - RUN pip install --no-cache-dir -r requirements.txt
+    - COPY source files after dependencies
+    - No development tools installed in production image
+
+  SECRET EXCLUSION:
+    - COPY does not include .env files (governed by .dockerignore)
+    - ARG and ENV in Dockerfile contain no secret values
+    - Secrets injected at runtime via environment variables
+
+.DOCKERIGNORE SECURITY
+----------------------------------------------------------------------
+File:     .dockerignore
+Critical Exclusions:
+  .env
+  .env.*
+  *.key
+  *.pem
+  secrets/
+  __pycache__/
+  .pytest_cache/
+  .git/
+  .github/
+  evaluation/eval_results.json  (may contain sensitive response data)
+  scripts/deep_clean.ps1        (cleanup scripts not needed in image)
+
+DOCKER-COMPOSE SECURITY
+----------------------------------------------------------------------
+File:     docker-compose.yml
+Security Properties:
+  - Secrets injected via env_file: .env (excluded from git)
+  - No secrets in docker-compose.yml values directly
+  - Service isolation: each service has defined network access
+  - Volume mounts use read-only mode where possible
+----------------------------------------------------------------------
+
+
+8. AZURE CLOUD SECURITY
+----------------------------------------------------------------------
+AZURE APP SERVICE SECURITY
+----------------------------------------------------------------------
+Deployment Target: Azure App Service (VR Studios pilot)
+Security Controls:
+  - HTTPS Only: Azure App Service forces HTTPS redirect
+  - TLS Version: Minimum TLS 1.2 enforced
+  - Managed Identity: Preferred for Azure service-to-service auth
+  - Azure Monitor: Application insights for security monitoring
+  - Network Restrictions: App Service access restrictions if needed
+
+AZURE OPENAI SECURITY
+----------------------------------------------------------------------
+Integration: backend/adapters/azure_openai.py
+Security Controls:
+  - Endpoint accessed via AOAI_ENDPOINT environment variable
+  - API key injected via environment (never source code)
+  - Azure Active Directory (AAD) authentication supported
+  - Request/response data does not persist at Azure OpenAI layer
+    (per Microsoft's enterprise data protection commitments)
+
+AZURE COSMOS DB SECURITY
+----------------------------------------------------------------------
+Integration: backend/infrastructure/cosmos_repo.py
+Security Controls:
+  - Connection string injected via environment variable only
+  - Cosmos DB encrypts all data at rest (AES-256)
+  - Cosmos DB encrypts all data in transit (TLS)
+  - Role-Based Access Control at Cosmos DB level
+  - Cosmos DB firewall restricts access to Azure App Service IP
+----------------------------------------------------------------------
+
+
+9. WEBSOCKET SECURITY
+----------------------------------------------------------------------
+ENDPOINT: /ws/sync
+Protocol: WebSocket over TLS (WSS) in production
+
+AUTHENTICATION:
+  WebSocket connections require X-API-Key in the initial HTTP
+  upgrade handshake. Connections without valid API key are rejected
+  before the WebSocket protocol upgrade completes.
+
+AUTHORIZATION:
+  Authenticated WebSocket connections receive all event types:
+    cog.intent events (cognitive processing results)
+    sync.update events (tri-node state changes)
+
+EVENT PAYLOAD SECURITY:
+  - All WebSocket payloads are JSON-serialized
+  - Pydantic schemas validate event payloads before serialization
+  - No raw Python object serialization (prevents object injection)
+  - Event payloads do not contain raw credentials or full
+    cognitive profiles
+
+CONNECTION LIFECYCLE:
+  - Connections that become inactive are closed by the server
+  - Maximum connection duration is configurable
+  - Disconnected clients are cleanly removed from event subscriber
+    list (no lingering references)
+
+DENIAL OF SERVICE MITIGATION:
+  - Rate limiting in middleware.py applies to WebSocket upgrade
+    requests
+  - Maximum concurrent WebSocket connections is configurable
+  - Message size limits prevent oversized payload attacks
+----------------------------------------------------------------------
+
+
+10. EVENTBUS ISOLATION
+----------------------------------------------------------------------
+The EventBus is an in-process pub/sub mechanism. It is explicitly
+designed to be isolated from external network access.
+
+SECURITY PROPERTIES:
+  - In-Process Only: EventBus events are Python objects passed
+    within the application process. They never cross network
+    boundaries or serialize to external storage.
+
+  - No External Subscription: External systems cannot subscribe
+    to EventBus topics. WebSocket (/ws/sync) is the externally
+    visible event channel, and WebSocket events are produced by
+    the EventBus subscriber within the application — the EventBus
+    itself is internal.
+
+  - Event Schema Enforcement: All events published to the EventBus
+    must conform to defined event schemas. Malformed events are
+    rejected at the publisher.
+
+  - Glyph Event Security: The GlyphEventBridge publishes glyph
+    events to the EventBus. Glyph sequences are validated before
+    being published (POST /api/glyphs/validate is the validation
+    endpoint used prior to processing).
+
+  - No Persistent Event Log: EventBus events are ephemeral.
+    They are not written to disk or Cosmos DB by default.
+    If event logging is added in Phase 4, the logging destination
+    must be encrypted and access-controlled.
+----------------------------------------------------------------------
+
+
+11. GLYPH INPUT VALIDATION
+----------------------------------------------------------------------
+GLYPH SEQUENCES:
+  Glyph sequences (e.g., "APEX->CORE->EMIT") are symbolic input
+  that drives cognitive routing in the platform. Adversarial glyph
+  sequences could potentially manipulate AI output if not validated.
+
+VALIDATION ENDPOINT:
+  POST /api/glyphs/validate
+    Input:  {sequence: [...]}
+    Output: {valid: bool, errors: [...]}
+    This endpoint must be called before any glyph sequence is
+    submitted for processing.
+
+VALIDATION RULES (enforced in glyph_processor.py):
+  - Glyph tokens must be members of the registered alias map
+    (GET /api/glyphs/aliases returns valid tokens)
+  - Sequence length must not exceed maximum configured length
+  - Sequence must not contain injection characters (e.g., ; " ' \\n)
+  - Route transitions (-> syntax) must connect valid glyph pairs
+  - Circular routes are detected and rejected
+
+FUZZY MATCHING SECURITY (KPI-007):
+  The glyph seed matcher uses fuzzy string matching to handle
+  imprecise glyph token input. Security concern: fuzzy matching
+  could be exploited to match malicious input to a valid-looking
+  token.
+
+  Mitigations:
+    - Fuzzy match score threshold is configurable; low-confidence
+      matches are rejected
+    - All fuzzy match candidates are validated against the
+      registered seed set
+    - Unrecognized tokens after fuzzy matching raise validation
+      errors, not silent failures
+    - Input sanitization strips control characters before fuzzy
+      matching begins
+
+GLYPH PACK SECURITY:
+  POST /api/glyphs/pack (bulk seed/rule/alias upload)
+    - Requires X-API-Key authentication (admin function)
+    - Input is Pydantic-validated
+    - Maximum pack size is enforced (prevents memory exhaustion)
+    - Uploaded seeds/rules are stored in Cosmos DB (encrypted at rest)
+----------------------------------------------------------------------
+
+
+12. STRIDE THREAT MODEL
+----------------------------------------------------------------------
+STRIDE analysis for Sovereign Forge with CI/CD-specific threats:
+
+S — SPOOFING
+----------------------------------------------------------------------
+Threat 1: API key spoofing
+  Target:     api_key_guard() authentication
+  Attack:     Attacker guesses or brute-forces API key
+  Mitigation: Enforce minimum 32-character random key; rate limiting
+              in middleware.py limits brute-force attempts;
+              consider HMAC-based key validation in Phase 4
+
+Threat 2: CI/CD actor spoofing
+  Target:     GitHub Actions workflow triggering
+  Attack:     Attacker pushes code as a legitimate user
+  Mitigation: GitHub requires authenticated push; release tags
+              restricted to repository admins; branch protection rules
+
+T — TAMPERING
+----------------------------------------------------------------------
+Threat 3: Glyph sequence tampering
+  Target:     POST /api/glyphs/interpret input
+  Attack:     Attacker manipulates glyph sequence to alter cognitive
+              routing
+  Mitigation: POST /api/glyphs/validate validates before processing;
+              Pydantic schema enforces structure
+
+Threat 4: CI/CD workflow file tampering
+  Target:     .github/workflows/ci.yml
+  Attack:     Attacker modifies workflow to bypass security checks
+  Mitigation: Branch protection prevents direct push to main;
+              all changes require PR review; workflow changes are
+              code-reviewed like any other change
+
+Threat 5: Dependency tampering (Supply Chain)
+  Target:     pip install during CI
+  Attack:     Malicious package version replaces pinned version
+  Mitigation: requirements.txt exact version pins; hash verification
+              (pip --require-hashes flag recommended for Phase 4);
+              Dependabot monitors for known vulnerabilities
+
+R — REPUDIATION
+----------------------------------------------------------------------
+Threat 6: API action repudiation
+  Target:     POST /api/cog/process, /api/cog/seeds, etc.
+  Attack:     User denies having performed a sensitive operation
+  Mitigation: Request logging in middleware.py provides audit trail;
+              Cosmos DB timestamps all records; Phase 4 should add
+              structured audit logging per request actor
+
+Threat 7: Release action repudiation
+  Target:     GitHub Release publishing
+  Attack:     Developer denies publishing a specific release
+  Mitigation: GitHub Actions logs immutably record the GitHub actor
+              who triggered release.yml; release tag authorship is
+              recorded in git history
+
+I — INFORMATION DISCLOSURE
+----------------------------------------------------------------------
+Threat 8: Credential exposure in source code
+  Target:     API keys, Cosmos DB connection strings
+  Attack:     Developer accidentally commits credentials to git
+  Mitigation: .gitignore prevents .env files from being tracked;
+              deep_clean.ps1 scans for credential patterns;
+              CI/CD does not require real credentials (MOCK_AI=true)
+
+Threat 9: Cognitive profile data exposure
+  Target:     Lens preference data in Cosmos DB
+  Attack:     Unauthorized access reveals user's neurodivergent status
+  Mitigation: X-API-Key guard; Cosmos DB access control;
+              cognitive profile data excluded from application logs;
+              no PII in error responses
+
+Threat 10: Stack trace exposure in API errors
+  Target:     Exception handling
+  Attack:     Unhandled exception exposes internal code structure
+  Mitigation: backend/error_handler.py returns structured error
+              responses; no raw Python tracebacks in API responses;
+              DEBUG mode disabled in production
+
+D — DENIAL OF SERVICE
+----------------------------------------------------------------------
+Threat 11: API rate limiting bypass
+  Target:     All protected API endpoints
+  Attack:     High-volume requests overwhelm the API
+  Mitigation: Rate limiting in middleware.py; Azure App Service
+              auto-scaling; Azure DDoS protection
+
+Threat 12: Large glyph pack DoS
+  Target:     POST /api/glyphs/pack
+  Attack:     Attacker uploads oversized glyph pack to exhaust memory
+  Mitigation: Maximum pack size validation; Pydantic schema enforces
+              field length limits; request size limits in middleware
+
+E — ELEVATION OF PRIVILEGE
+----------------------------------------------------------------------
+Threat 13: API key privilege escalation
+  Target:     Single-tier authorization model
+  Attack:     Authenticated user accesses admin functions
+              (Phase 4 concern as RBAC is not yet implemented)
+  Mitigation: Current single-tier model means all authenticated
+              users have equivalent access; Phase 4 RBAC will
+              restrict admin-only endpoints (stress test, rules PUT)
+
+Threat 14: GitHub Actions secrets escalation
+  Target:     CI/CD workflow secrets
+  Attack:     Malicious CI step exfiltrates secrets to external URL
+  Mitigation: Workflows use actions from trusted publishers only;
+              GitHub Actions network egress should be restricted
+              (Phase 4 enhancement); MOCK_AI=true means real
+              secrets are not needed in CI
+----------------------------------------------------------------------
+
+
+13. DATA CLASSIFICATION AND PROTECTION
+----------------------------------------------------------------------
+Data Classification Levels for Sovereign Forge:
+
+CRITICAL — Credentials and Secrets
+  Examples:   Azure OpenAI API key, Cosmos DB connection string,
+              application API_KEY
+  Storage:    Environment variables, GitHub Secrets only
+  Transit:    Never; must not appear in any log, response, or file
+  Retention:  Rotate on any suspected exposure
+  Protection: RULE 1 (Zero Source Code Credentials) applies
+
+SENSITIVE — Cognitive and User Data
+  Examples:   Cognitive lens preference (ADHD/Autism/Dyslexia),
+              conversation history, memory zone contents
+  Storage:    Azure Cosmos DB (encrypted at rest)
+  Transit:    HTTPS/WSS (TLS 1.2+ in transit)
+  Logging:    Lens preference MUST NOT appear in application logs
+  Access:     X-API-Key authentication required
+
+INTERNAL — Platform Configuration and Metrics
+  Examples:   Zone classification stats, intent/topic counts,
+              KPI metrics, orchestrator status
+  Storage:    In-memory (metrics), Cosmos DB (persistent stats)
+  Transit:    HTTPS (TLS 1.2+)
+  Access:     X-API-Key authentication required
+
+PUBLIC — API Health and Documentation
+  Examples:   GET /api/healthz response, GET /api/readyz response,
+              API.md documentation
+  Storage:    Static documentation files; dynamic health responses
+  Transit:    HTTPS (no sensitive data)
+  Access:     Unauthenticated (intentional)
+----------------------------------------------------------------------
+
+
+14. COGNITIVE PROFILE PRIVACY
+----------------------------------------------------------------------
+The cognitive lens system introduces a privacy consideration unique
+to Sovereign Forge: lens preference data (ADHD / Autism / Dyslexia)
+reveals neurodivergent status, a sensitive personal characteristic
+that may be protected under disability privacy regulations.
+
+PRIVACY CONTROLS:
+
+  NO LENS DATA IN LOGS:
+    Application logs must not include the active cognitive lens name.
+    Log entries reference cognitive processing events using neutral
+    identifiers, not the lens type.
+    Example WRONG:  "Processing request with ADHD lens for user X"
+    Example RIGHT:  "Cognitive processing initiated [lens_id=L1]"
+
+  LENS DATA ISOLATION:
+    Cognitive profile data (lens preference) is stored in a separate
+    Cosmos DB container from conversation history.
+    Access to cognitive profiles requires the same X-API-Key
+    authentication as all other endpoints.
+
+  NO LENS DATA IN ERROR RESPONSES:
+    If a lens transformation fails, the error response must not
+    include the lens type that was active at the time of failure.
+
+  CONSENT AND TRANSPARENCY:
+    Users who select a cognitive lens have explicitly done so through
+    the interface. Explicit lens selection constitutes informed
+    consent for cognitive formatting.
+    Automatic lens classification (Phase 5 middle layer) must include
+    user notification that automatic classification is occurring.
+
+  DATA MINIMIZATION:
+    Only the active lens identifier is stored, not the full
+    diagnostic basis for lens selection. The platform does not
+    diagnose or confirm neurodivergent conditions.
+----------------------------------------------------------------------
+
+
+15. DEPENDENCY SECURITY
+----------------------------------------------------------------------
+DEPENDENCY MANAGEMENT
+----------------------------------------------------------------------
+File:         requirements.txt
+Strategy:     Exact version pinning for all dependencies
+
+Rationale:
+  Floating version specifiers (e.g., fastapi>=0.100.0) allow
+  automatic upgrades that may introduce vulnerabilities.
+  Exact pinning (e.g., fastapi==0.111.0) ensures reproducible
+  builds and prevents supply chain substitution attacks.
+
+KEY DEPENDENCIES AND SECURITY PROFILE:
+  fastapi          — REST/WebSocket framework; well-maintained;
+                     security advisories monitored
+  pydantic         — Input validation; v2 has improved performance
+                     and stricter validation than v1
+  azure-cosmos     — Official Microsoft SDK; actively maintained
+  openai           — Official OpenAI SDK; pinned to avoid breaking
+                     API changes
+  pytest           — Test framework; dev dependency, not in
+                     production image
+  azure-ai-evaluation — AI evaluation SDK; used in evaluation
+                     environment only
+
+VULNERABILITY MONITORING:
+  Dependabot:     Configured for automated vulnerability alerts
+                  on GitHub repository
+  Manual Review:  Monthly review of pip-audit output recommended
+
+SUPPLY CHAIN ATTACK MITIGATIONS:
+  - Exact version pinning (requirements.txt)
+  - PyPI trusted publisher model (packages from trusted authors)
+  - Dependabot alerts for known CVEs
+  - Phase 4 enhancement: pip install with --require-hashes for
+    full hash verification of all packages
+----------------------------------------------------------------------
+
+
+16. INCIDENT RESPONSE PLAN
+----------------------------------------------------------------------
+INCIDENT CLASSIFICATION:
+
+  SEV-1 (Critical — Respond Immediately):
+    - Credential exposure in source code or logs
+    - Active exploitation of API authentication bypass
+    - Data breach exposing cognitive profile data
+    Response: Rotate all credentials immediately; notify affected
+              parties; investigate and patch within 4 hours
+
+  SEV-2 (High — Respond within 4 hours):
+    - CI/CD pipeline secrets exposure suspected
+    - Cosmos DB unauthorized access detected
+    - Azure OpenAI quota abuse indicating API key compromise
+    Response: Rotate affected credentials; audit access logs;
+              patch within 24 hours
+
+  SEV-3 (Medium — Respond within 24 hours):
+    - Elevated error rates suggesting attack probing
+    - Glyph injection attempts detected in logs
+    - CI/CD pipeline repeatedly failing due to external changes
+    Response: Investigate root cause; implement additional controls
+
+  SEV-4 (Low — Respond within sprint):
+    - New dependency vulnerability reported (non-exploited)
+    - Minor security configuration gap identified
+    Response: Track in GitHub Issues; remediate in next sprint
+
+INCIDENT RESPONSE PROCESS:
+  1. Detection (automated: GitHub Actions failure, Azure Monitor alert;
+                manual: bug_report issue template)
+  2. Classification (SEV-1 through SEV-4)
+  3. Containment (rotate credentials, block access, disable endpoint)
+  4. Investigation (GitHub Actions logs, Azure Monitor, error_handler
+                    log output)
+  5. Remediation (code fix, configuration change, credential rotation)
+  6. Recovery (verify fix via ci.yml, smoke_test.py)
+  7. Post-Incident Review (update RISK-REGISTER; update this document)
+
+REPORTING:
+  All security incidents are documented using the GitHub ISSUE_TEMPLATE
+  bug_report template with "security" label applied.
+----------------------------------------------------------------------
+
+
+17. SECURITY TESTING MATRIX
+----------------------------------------------------------------------
+Test Type                File/Tool              Frequency    Gate
+----------------------------------------------------------------------
+API Auth Unit Tests      test_ws_api.py         Per commit   CI
+Input Validation Tests   test_domain.py         Per commit   CI
+Glyph Validation Tests   test_glyph_processor   Per commit   CI
+EventBus Isolation       test_eventbus.py       Per commit   CI
+WebSocket Security       test_ws_api.py         Per commit   CI
+Integration Smoke Test   scripts/smoke_test.py  Pre-deploy   Manual
+Credential Scan          scripts/deep_clean.ps1 Pre-release  Manual
+Dependency Audit         pip-audit              Monthly      Manual
+Penetration Test         External (Phase 4)     Annually     Manual
+----------------------------------------------------------------------
+
+
+18. DOCUMENT CONTROL
+----------------------------------------------------------------------
+Document ID:      SOVEREIGN-SECURITY-PLAN-001
+Version:          v001
+Created:          2026-04-24
+Author:           Security Office, Sovereign Forge Program
+Owner:            Security Officer
+Review Authority: Platform Architect + Lead Engineer
+Distribution:     Engineering, Security, Compliance
+
+Next Review:      2026-05-08
+
+Change Log:
+  v001 | 2026-04-24 | Initial creation. Full security architecture
+       |            | documented. STRIDE threat model complete with
+       |            | 14 threats. CI/CD security analysis complete.
+       |            | api_key_guard() implementation documented.
+       |            | Production cleanup script procedures defined.
+----------------------------------------------------------------------
+
+
+================================================================================
+END OF DOCUMENT: SOVEREIGN-SECURITY-PLAN-001_2026-04-24_v001.txt
+Classification: Enterprise Internal — Controlled Distribution
+Total Sections: 18 | Approx. Lines: 440+
+================================================================================

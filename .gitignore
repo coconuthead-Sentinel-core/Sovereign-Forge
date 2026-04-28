@@ -171,3 +171,10 @@ data/*.bak
 
 # Mock data (optional - uncomment if you want to ignore)
 # data/glyphs_pack.sample.json
+
+# Publication hygiene
+*.accdb
+*.lock
+_runtime/
+.claude/
+~/.claude/

@@ -15,9 +15,9 @@ Sentinel Forge is a neurodivergent-aware AI orchestration platform that extends 
                               ▼
                        ┌──────────────────┐
                        │ Memory Zones     │
-                       │ 🟢 Active        │
-                       │ 🟡 Pattern       │
-                       │ 🔴 Crystal       │
+                       │ Active           │
+                       │ Pattern          │
+                       │ Archived         │
                        └──────────────────┘
 ```
 
@@ -26,14 +26,14 @@ Sentinel Forge is a neurodivergent-aware AI orchestration platform that extends 
 ### Zone Classification
 Memory is classified based on Shannon entropy thresholds:
 
-- **🟢 Active Zone** (`entropy > 0.7`): High-entropy, novel content requiring real-time processing
-- **🟡 Pattern Zone** (`0.3 < entropy ≤ 0.7`): Emerging patterns, semi-stable content
-- **🔴 Crystal Zone** (`entropy ≤ 0.3`): Low-entropy, stable patterns for long-term storage
+- **Active Zone** (`entropy > 0.7`): High-entropy, novel content requiring real-time processing
+- **Pattern Zone** (`0.3 < entropy <= 0.7`): Emerging patterns, semi-stable content
+- **Archived Zone** (`entropy <= 0.3`): Low-entropy, stable patterns for long-term storage
 
 ### Zone Routing
 - **Active**: Immediate AI processing with lens adaptation
 - **Pattern**: Consolidated storage with pattern analysis
-- **Crystal**: Archival storage with retrieval optimization
+- **Archived**: Archival storage with retrieval optimization
 
 ### Metrics Tracking
 Zone distribution is tracked in `CognitiveOrchestrator._zone_counts` and exposed via `get_zone_metrics()`:
@@ -44,7 +44,7 @@ Zone distribution is tracked in `CognitiveOrchestrator._zone_counts` and exposed
     "zone_distribution": {
         "active": {"count": 45, "percentage": 30.0},
         "pattern": {"count": 60, "percentage": 40.0},
-        "crystal": {"count": 45, "percentage": 30.0}
+        "archived": {"count": 45, "percentage": 30.0}
     }
 }
 ```
@@ -91,20 +91,20 @@ Lens application is tracked in `CognitiveOrchestrator._lens_counts`:
 
 ## Symbolic Processing Pipeline
 
-### Glyph Processor (`glyph_processor.py`)
+### Symbol Pattern Processor (`symbol_processor.py`)
 - **Input**: Raw text content
-- **Processing**: Pattern matching against `glyphs_pack.json`
-- **Output**: `SymbolicMetadata` with matched glyphs and confidence scores
+- **Processing**: Pattern matching against `symbols_pack.json`
+- **Output**: `SymbolicMetadata` with matched symbols and confidence scores
 
-### Glyph Parser (`glyph_parser.py`)
-- **Input**: Text with embedded glyph sequences
-- **Processing**: Parse glyph syntax (e.g., `[APEX:action]`, `[CORE:process]`)
+### Symbol Sequence Parser (`symbol_parser.py`)
+- **Input**: Text with embedded symbol sequences
+- **Processing**: Parse symbol syntax (e.g., `[APEX:action]`, `[CORE:process]`)
 - **Output**: Parsed concepts and relationships
 
 ### Event Topics
 - **cognitive**: Zone transitions and processing events
-- **symbolic**: Glyph matches and pattern recognition
-- **glyph**: Parsed glyph sequences and concepts
+- **symbolic**: Symbol matches and pattern recognition
+- **symbol**: Parsed symbol sequences and concepts
 
 ### Payload Schema
 ```json
@@ -155,9 +155,9 @@ Dashboard connects via WebSocket and updates UI elements:
 
 ## Extensibility
 
-### Adding New Glyphs
-1. Update `data/glyphs_pack.json` with new patterns
-2. Test via `glyph_processor.process_text()`
+### Adding New Symbols
+1. Update `data/symbols_pack.json` with new patterns
+2. Test via `SymbolPatternMatcher.process_text()`
 3. Deploy and monitor symbolic match rates
 
 ### Adding New Lenses

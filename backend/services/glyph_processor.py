@@ -1,11 +1,11 @@
-"""Glyph Processor for Symbolic Pattern Recognition.
+"""Symbol pattern matching engine for text analysis.
 
-Loads and processes glyph patterns from JSON configuration for symbolic
+Loads and processes symbol patterns from JSON configuration for symbolic
 processing in the Cognitive Orchestrator. Provides fuzzy matching against
 text to identify symbolic patterns and generate metadata.
 
 Architecture:
-    GlyphProcessor → glyphs_pack.json → SymbolicMetadata → CognitiveOrchestrator
+    SymbolPatternMatcher -> symbols_pack.json -> SymbolicMetadata -> CognitiveOrchestrator
 """
 
 import json
@@ -18,57 +18,57 @@ from dataclasses import dataclass
 logger = logging.getLogger(__name__)
 
 # Import from domain models to avoid circular imports
-from backend.domain.models import GlyphMatch, SymbolicMetadata
+from backend.domain.models import SymbolMatch, SymbolicMetadata
 
 
-class GlyphProcessor:
+class SymbolPatternMatcher:
     """
-    Processes text against glyph patterns for symbolic recognition.
+    Processes text against symbol patterns for symbolic recognition.
 
     Responsibilities:
-    1. Load glyph definitions from JSON
+    1. Load symbol definitions from JSON
     2. Perform fuzzy pattern matching against text
     3. Generate symbolic metadata with confidence scores
     4. Apply transformation rules based on matches
     """
 
-    def __init__(self, glyphs_path: Optional[str] = None):
+    def __init__(self, symbols_path: Optional[str] = None):
         """
-        Initialize GlyphProcessor.
+        Initialize SymbolPatternMatcher.
 
         Args:
-            glyphs_path: Path to glyphs JSON file. Defaults to data/glyphs_pack.json
+            symbols_path: Path to symbols JSON file. Defaults to data/symbols_pack.json
         """
-        self.glyphs_path = glyphs_path or self._default_glyphs_path()
-        self.glyphs: Dict[str, Dict[str, Any]] = {}
-        self._load_glyphs()
-        logger.info(f"🜂 GlyphProcessor initialized with {len(self.glyphs)} shapes")
+        self.symbols_path = symbols_path or self._default_symbols_path()
+        self.symbols: Dict[str, Dict[str, Any]] = {}
+        self._load_symbols()
+        logger.info(f"SymbolPatternMatcher initialized with {len(self.symbols)} shapes")
 
-    def _default_glyphs_path(self) -> str:
-        """Get default path to glyphs file."""
+    def _default_symbols_path(self) -> str:
+        """Get default path to symbols file."""
         # Assume we're in backend/services/, go up two levels to project root
         backend_dir = Path(__file__).parent.parent.parent
-        return str(backend_dir / "data" / "glyphs_pack.json")
+        return str(backend_dir / "data" / "symbols_pack.json")
 
-    def _load_glyphs(self) -> None:
-        """Load glyph definitions from JSON file."""
+    def _load_symbols(self) -> None:
+        """Load symbol definitions from JSON file."""
         try:
-            with open(self.glyphs_path, 'r', encoding='utf-8') as f:
+            with open(self.symbols_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                self.glyphs = data.get('shapes', {})
-                logger.info(f"📖 Loaded {len(self.glyphs)} glyph shapes")
+                self.symbols = data.get('shapes', {})
+                logger.info(f"Loaded {len(self.symbols)} symbol shapes")
         except FileNotFoundError:
-            logger.warning(f"⚠️ Glyphs file not found: {self.glyphs_path}")
-            # Create sample glyphs if file doesn't exist
-            self._create_sample_glyphs()
+            logger.warning(f"Symbols file not found: {self.symbols_path}")
+            # Create sample symbols if file doesn't exist
+            self._create_sample_symbols()
         except json.JSONDecodeError as e:
-            logger.error(f"🔴 Invalid JSON in glyphs file: {e}")
+            logger.error(f"Invalid JSON in symbols file: {e}")
             raise
 
-    def _create_sample_glyphs(self) -> None:
-        """Create sample glyphs for development."""
-        logger.info("🜂 Creating sample glyphs for development")
-        self.glyphs = {
+    def _create_sample_symbols(self) -> None:
+        """Create sample symbols for development."""
+        logger.info("Creating sample symbols for development")
+        self.symbols = {
             "APEX": {
                 "topic": "initiation",
                 "seeds": ["apex", "ignite", "ai_infer", "start", "init", "query"],
@@ -109,10 +109,10 @@ class GlyphProcessor:
         if not text or not text.strip():
             return SymbolicMetadata([], None, set(), 0.0)
 
-        # Find all glyph matches
+        # Find all symbol matches
         matches = []
-        for shape_name, shape_data in self.glyphs.items():
-            match = self._match_glyph(text, shape_name, shape_data)
+        for shape_name, shape_data in self.symbols.items():
+            match = self._match_symbol(text, shape_name, shape_data)
             if match:
                 matches.append(match)
 
@@ -131,15 +131,15 @@ class GlyphProcessor:
         avg_confidence = total_confidence / len(matches) if matches else 0.0
 
         return SymbolicMetadata(
-            matched_glyphs=[match.model_dump() for match in matches],
+            matched_symbols=[match.model_dump() for match in matches],
             dominant_topic=dominant_topic,
             symbolic_tags=symbolic_tags,
             processing_confidence=avg_confidence
         )
 
-    def _match_glyph(self, text: str, shape_name: str, shape_data: Dict[str, Any]) -> Optional[GlyphMatch]:
+    def _match_symbol(self, text: str, shape_name: str, shape_data: Dict[str, Any]) -> Optional[SymbolMatch]:
         """
-        Match a single glyph against text.
+        Match a single symbol pattern against text.
 
         Uses fuzzy matching with:
         - Exact word matches (highest confidence)
@@ -185,7 +185,7 @@ class GlyphProcessor:
         # Calculate average confidence
         confidence = total_score / match_count
 
-        return GlyphMatch(
+        return SymbolMatch(
             shape=shape_name,
             topic=topic,
             confidence=min(confidence, 1.0),  # Cap at 1.0
@@ -194,31 +194,31 @@ class GlyphProcessor:
         )
 
     def get_available_shapes(self) -> List[str]:
-        """Get list of available glyph shapes."""
-        return list(self.glyphs.keys())
+        """Get list of available symbol shapes."""
+        return list(self.symbols.keys())
 
     def get_shape_info(self, shape: str) -> Optional[Dict[str, Any]]:
-        """Get information about a specific glyph shape."""
-        return self.glyphs.get(shape)
+        """Get information about a specific symbol shape."""
+        return self.symbols.get(shape)
 
-    def reload_glyphs(self) -> None:
-        """Reload glyphs from file."""
-        self._load_glyphs()
+    def reload_symbols(self) -> None:
+        """Reload symbols from file."""
+        self._load_symbols()
 
 
 # --- Singleton Instance (Optional convenience) ---
 
-_glyph_processor: Optional[GlyphProcessor] = None
+_symbol_pattern_matcher: Optional[SymbolPatternMatcher] = None
 
 
-def get_glyph_processor() -> GlyphProcessor:
+def get_symbol_pattern_matcher() -> SymbolPatternMatcher:
     """
-    Get the default GlyphProcessor instance (lazy singleton).
+    Get the default SymbolPatternMatcher instance (lazy singleton).
 
     Returns:
-        GlyphProcessor instance
+        SymbolPatternMatcher instance
     """
-    global _glyph_processor
-    if _glyph_processor is None:
-        _glyph_processor = GlyphProcessor()
-    return _glyph_processor
+    global _symbol_pattern_matcher
+    if _symbol_pattern_matcher is None:
+        _symbol_pattern_matcher = SymbolPatternMatcher()
+    return _symbol_pattern_matcher

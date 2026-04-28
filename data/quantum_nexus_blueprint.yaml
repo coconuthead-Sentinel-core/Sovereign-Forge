@@ -1,13 +1,13 @@
 # data/quantum_nexus_blueprint.yaml
 # Quantum Nexus Rolodex Redesign Blueprint
 # Version 1.8.1 | December 19, 2025
-# Architect: Shannon Brian Kelly (Coconut Head)
+# Architect: Shannon Bryan Kelly
 
 quantum_nexus_blueprint:
   id: "QuantumNexus-RolodexRedesign-2025"
   version: "1.8.1"
   date: "2025-12-19"
-  architect: "Shannon Brian Kelly (Coconut Head)"
+  architect: "Shannon Bryan Kelly"
 
   filing_system:
     origin: "A1"
@@ -29,8 +29,8 @@ quantum_nexus_blueprint:
       E1: { r: 1, c: 5, node: 1, label: "Linear Algebra" }
       F1: { r: 1, c: 6, node: 1, label: "C Programming" }
 
-      G1: { r: 2, c: 1, node: 2, label: "Glyph Registry" }
-      H1: { r: 2, c: 2, node: 2, label: "Glyph Registry (1)" }
+      G1: { r: 2, c: 1, node: 2, label: "Symbol Registry" }
+      H1: { r: 2, c: 2, node: 2, label: "Symbol Registry (1)" }
       I1: { r: 2, c: 3, node: 2, label: "Sentinel Dashboard" }
       J1: { r: 2, c: 4, node: 2, label: "Universal Cognitive Lattice" }
       K1: { r: 2, c: 5, node: 2, label: "QUICK START" }
@@ -100,7 +100,7 @@ quantum_nexus_blueprint:
       source_files:
         - "Resume/LinkedIn entries"
 
-    - id: "Glyph_Registry"
+    - id: "Symbol_Registry"
       color: "green"
       cells: ["G1", "H1"]
       source_files:
@@ -115,7 +115,7 @@ quantum_nexus_blueprint:
       path: ["A1", "H1", "O1", "V1"]
       attach_source_files:
         mode: "all"
-        include_nodes: ["Node_1_Technical_Arsenal", "Node_2_Core_Frameworks", "Node_3_Skill_Forge", "Node_4_Meta_Research", "Node_5_Career", "Glyph_Registry"]
+        include_nodes: ["Node_1_Technical_Arsenal", "Node_2_Core_Frameworks", "Node_3_Skill_Forge", "Node_4_Meta_Research", "Node_5_Career", "Symbol_Registry"]
       notes:
         - "Purpose: fast cross-node trace from Prime Truth (A1) into Meta Research focal point (V1)."
         - "GreatGreg: Dial A1 → H1 → O1 → V1."

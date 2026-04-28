@@ -552,11 +552,11 @@ class ShannonPrimeCore(GraphNode):
         }
 
 
-class MetatronEngine(GraphNode):
+class PatternSuggestionEngine(GraphNode):
     """Symbolic pattern suggester that proposes new rules from frequent tokens."""
 
     def __init__(self, prime: ShannonPrimeCore, symbolic: 'SymbolicArray') -> None:
-        super().__init__("metatron_engine")
+        super().__init__("pattern_suggestion_engine")
         self._prime = prime
         self._symbolic = symbolic
 
@@ -567,7 +567,7 @@ class MetatronEngine(GraphNode):
         passthrough.metadata = dict(atom.metadata)
         return passthrough
 
-    def suggestions(self, limit: int = 5) -> List[Dict[str, str]]:  # pragma: no cover
+    def generate_rule_suggestions(self, limit: int = 5) -> List[Dict[str, str]]:  # pragma: no cover
         metrics = self._prime.metrics()
         existing = set(self._symbolic.get_rules().keys())
         sugg: List[Dict[str, str]] = []
@@ -635,7 +635,7 @@ class SentinelProcessor(GraphNode):
         self.topic = TopicIndexerNode()
         self.gem = GeminiNodeStack()
         self.prime = ShannonPrimeCore()
-        self.meta = MetatronEngine(self.prime, self.sym)
+        self.meta = PatternSuggestionEngine(self.prime, self.sym)
         self.emo = EmotionalAnalyzer()
         self.eth = EthicalGuard()
         self.cube = CubeCore()
@@ -644,11 +644,11 @@ class SentinelProcessor(GraphNode):
     def set_profile(self, profile: Dict[str, Any]) -> None:  # pragma: no cover
         self._profile = dict(profile or {})
         # Map selected flags into node behaviors
-        mem = self._profile.get("memory_system", {}).get("mouse_system_expansion", {})
+        mem = self._profile.get("memory_system", {}).get("memory_cache_config", {})
         if mem.get("json_schema_encoding"):
             self.refl.set_encoding("json_schema")
-        elif mem.get("chronofold_lattice_active"):
-            self.refl.set_encoding("chronofold_lite")
+        elif mem.get("lattice_encoding_active"):
+            self.refl.set_encoding("lattice_encoding_lite")
         else:
             self.refl.set_encoding(None)
 
@@ -757,12 +757,12 @@ class SentinelCognitionGraph:
     def memory_clear(self) -> None:
         self.sp.refl.clear()
 
-    # Prime metrics and Metatron suggestions
+    # Prime metrics and rule suggestions
     def prime_metrics(self) -> Dict[str, Any]:  # pragma: no cover
         return self.sp.prime.metrics()
 
-    def metatron_suggestions(self, limit: int = 5) -> List[Dict[str, str]]:  # pragma: no cover
-        return self.sp.meta.suggestions(limit=limit)
+    def generate_rule_suggestions(self, limit: int = 5) -> List[Dict[str, str]]:  # pragma: no cover
+        return self.sp.meta.generate_rule_suggestions(limit=limit)
 
     def embed_metrics(self) -> Dict[str, Any]:  # pragma: no cover
         # Surface reflective pool embedding similarity metrics

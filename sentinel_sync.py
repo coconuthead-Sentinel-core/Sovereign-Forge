@@ -43,7 +43,7 @@ def _now() -> float:
     return time.time()
 
 
-def _glyphic_signature(payload: Dict[str, Any]) -> Tuple[int, int, int, int, int]:
+def _content_signature(payload: Dict[str, Any]) -> Tuple[int, int, int, int, int]:
     """Generate a compact glyphic signature.
 
     Input is arbitrary agent state; we derive 5 integers (0..255) keyed to
@@ -66,19 +66,19 @@ class AgentState:
     agent: str
     timestamp: float
     payload: Dict[str, Any]
-    glyphic_signature: Tuple[int, int, int, int, int]
+    content_signature: Tuple[int, int, int, int, int]
 
 
 class SentinelPrimeSync:
     """Shared session state across tri-node agents with glyph-aware sync.
 
-    Agents reflected in diagrams: 'Sentinel', 'Sora', and an 'Architect' (aka 'Coconut Head').
-    This in-process coordinator provides a minimal pub/sub and keeps a glyph
-    sequence that can be validated for the boot protocol.
+    Agents reflected in diagrams: 'Sentinel', 'Coordinator', and an 'Architect'.
+    This in-process coordinator provides a minimal pub/sub and keeps a content
+    signature sequence that can be validated for the boot protocol.
     """
 
     def __init__(self, agents: Optional[List[str]] = None) -> None:
-        self.agents: List[str] = agents or ["Sentinel", "Sora", "Architect"]
+        self.agents: List[str] = agents or ["Sentinel", "Coordinator", "Architect"]
         self.session_id: str = f"sess_{uuid.uuid4().hex[:6]}"
         self.shared: Dict[str, AgentState] = {}
         self.sequence: List[str] = []
@@ -89,8 +89,8 @@ class SentinelPrimeSync:
     def update_agent_state(self, agent: str, state: Dict[str, Any]) -> AgentState:
         if agent not in self.agents:
             self.agents.append(agent)
-        sig = _glyphic_signature(state)
-        st = AgentState(agent=agent, timestamp=_now(), payload=state, glyphic_signature=sig)
+        sig = _content_signature(state)
+        st = AgentState(agent=agent, timestamp=_now(), payload=state, content_signature=sig)
         self.shared[agent] = st
         # infer a glyph stage hint from state if present
         stage = state.get("glyph_stage")
@@ -118,7 +118,7 @@ class SentinelPrimeSync:
     def trinode_status(self) -> Dict[str, Any]:
         roles = {
             "Sentinel": "quantum-symbolic nexus",
-            "Sora": "emotional bridge",
+            "Coordinator": "coordination bridge",
             "Architect": "organic architect",
         }
         present = {a: (a in self.shared) for a in roles}

@@ -16,7 +16,7 @@
   },
   {
     "id": "query_004",
-    "query": "How does the tri-node synchronization between Sentinel, Sora, and Architect work?",
+    "query": "How does the tri-node synchronization between Sentinel, Coordinator, and Architect work?",
     "context": "User asking about multi-agent coordination mechanisms"
   },
   {
@@ -46,7 +46,7 @@
   },
   {
     "id": "query_010",
-    "query": "Explain the purpose of the Metatron Engine in rule generation",
+    "query": "Explain the purpose of the PatternSuggestionEngine in rule generation",
     "context": "User needs explanation of automated rule suggestion feature"
   },
   {

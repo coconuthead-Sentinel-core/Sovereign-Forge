@@ -390,7 +390,7 @@
                 document.getElementById('zonePatternCount').textContent = 
                     memoryZones.pattern_count || 0;
                 document.getElementById('zoneCrystalCount').textContent = 
-                    memoryZones.crystal_count || 0;
+                    memoryZones.archived_count || 0;
                 document.getElementById('zoneAvgEntropy').textContent = 
                     (memoryZones.avg_entropy || 0).toFixed(3);
 
@@ -398,7 +398,7 @@
                 zoneDistributionChart.data.datasets[0].data = [
                     memoryZones.active_count || 0,
                     memoryZones.pattern_count || 0,
-                    memoryZones.crystal_count || 0
+                    memoryZones.archived_count || 0
                 ];
                 zoneDistributionChart.update();
 

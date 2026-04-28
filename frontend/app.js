@@ -84,15 +84,15 @@ async function syncSnapshot() {
   pretty($('syncOut'), snap);
 }
 
-async function validateGlyphs() {
+async function validateSymbols() {
   let sequence = [];
   try { sequence = JSON.parse($('glyphSeq').value || '[]'); } catch (e) { alert('Bad JSON'); return; }
-  const res = await api('/glyphs/validate', { method: 'POST', body: JSON.stringify({ sequence }) });
+  const res = await api('/symbols/validate', { method: 'POST', body: JSON.stringify({ sequence }) });
   pretty($('syncOut'), res);
 }
 
 async function bootSequence() {
-  const res = await api('/glyphs/boot');
+  const res = await api('/symbols/boot');
   pretty($('syncOut'), res);
 }
 
@@ -107,7 +107,7 @@ window.addEventListener('DOMContentLoaded', () => {
   $('suggBtn').addEventListener('click', getSuggestions);
   $('syncUpdate').addEventListener('click', syncUpdate);
   $('syncSnap').addEventListener('click', syncSnapshot);
-  $('validateGlyphs').addEventListener('click', validateGlyphs);
+  $('validateGlyphs').addEventListener('click', validateSymbols);
   $('bootSeq').addEventListener('click', bootSequence);
   // WebSocket live sync
   let ws = null;
@@ -156,12 +156,12 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (e) { pretty($('profileOut'), String(e)); }
   });
   $('reinitProfile').addEventListener('click', async () => {
-    const ok = prompt('Type: Confirm Zero-State Reset');
-    if (ok !== 'Confirm Zero-State Reset') return;
+    const ok = prompt('Type: Confirm Default Reset');
+    if (ok !== 'Confirm Default Reset') return;
     try {
       const prof = await api('/profile_initialize', { method: 'POST' });
       pretty($('profileOut'), prof);
-      alert('Sentinel profile reinitialized (Zero-State).');
+      alert('Sentinel profile reinitialized (Default Reset).');
     } catch (e) { alert(String(e)); }
   });
 });

@@ -46,7 +46,7 @@ class Zone(Enum):
 
     GREEN = "green_active"
     YELLOW = "yellow_pattern"
-    RED = "red_crystallized"
+    RED = "red_archived"
 
 
 @dataclass

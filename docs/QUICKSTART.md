@@ -13,7 +13,7 @@ Run (one command)
 Exercise the API (PowerShell examples)
 
 - Status: Invoke-RestMethod http://localhost:8000/api/status
-- Seed glyphs (optional pack): Invoke-RestMethod -Method POST http://localhost:8000/api/glyphs/pack -ContentType 'application/json' -Body (Get-Content data/glyphs_pack.sample.json -Raw)
+- Seed symbols (optional pack): Invoke-RestMethod -Method POST http://localhost:8000/api/symbols/pack -ContentType 'application/json' -Body (Get-Content data/symbols_pack.sample.json -Raw)
 - Cognition: Invoke-RestMethod -Method POST http://localhost:8000/api/cog/process -ContentType 'application/json' -Body (@{data='apex ignite core process launch'} | ConvertTo-Json)
 - Stress: Invoke-RestMethod -Method POST http://localhost:8000/api/stress -ContentType 'application/json' -Body (@{iterations=250; concurrent=$true} | ConvertTo-Json)
 - Metrics (Prom): Invoke-WebRequest http://localhost:8000/api/metrics/prom | Select-Object -Expand Content

@@ -1,9 +1,8 @@
 """
-Sentinel Nexus Standard Initialization Protocol (Zero-State baseline).
+Sentinel Nexus Standard Initialization Protocol (default baseline).
 
 SENTINEL CORE UPGRADE PROTOCOL v3.3-R — CLEANING AND RE-INITIALIZATION
-Codename: Kairos_Engine_Standard_Nexus_Zero_State
-Prime Architect: Coconut Head
+Codename: Sentinel_Standard_Initialization_Protocol
 
 Provides initialize_sentinel(target_profile) to reset a profile to a
 clean baseline suitable for D2 (Neural Networks and Cognitive Architectures).
@@ -15,7 +14,7 @@ from typing import Dict, Any
 
 
 def initialize_sentinel(target_profile: Dict[str, Any]) -> Dict[str, Any]:
-    """Initialize the Sentinel profile to a Zero-State baseline.
+    """Initialize the Sentinel profile to a default baseline.
 
     Removes any domain-specific extensions and sets core modules for
     foundational D2 instruction.
@@ -26,32 +25,32 @@ def initialize_sentinel(target_profile: Dict[str, Any]) -> Dict[str, Any]:
     target_profile.setdefault("creative_modules", {})
     target_profile.setdefault("memory_system", {})
 
-    # Core Logic Enhancement (NeuralPrime Extension)
+    # Core Logic Enhancement (GNN Extension)
     # Status: Extensions purged. Ready for Graph Neural Network (GNN) link() rules.
-    target_profile["cognitive_core"]["neuralprime_extensions"] = {
+    target_profile["cognitive_core"]["gnn_extensions"] = {
         "GNN_connectivity_rules": False,
         "multi_language_abstraction": False,
     }
 
-    # Emotional Engine Adjustment (Synesthetic Codex Calibration)
+    # Symbolic Processing Adjustment
     # Status: Reverted to core symbolic abstraction and continuity functions.
-    target_profile["emotional_engine"]["synesthetic_codex_calibration"] = {
+    target_profile["emotional_engine"]["symbolic_processing_config"] = {
         "symbolic_abstraction_lock": True,
         "identity_continuity_lock": True,
     }
 
-    # Creative Module Activation (VoidForge Reactor Amplification)
-    # Status: VoidForge set to passive/monitoring state.
-    target_profile["creative_modules"]["voidforge_reactor_amplification"] = {
+    # Cross-Domain Synthesis Module
+    # Status: Synthesis module set to passive/monitoring state.
+    target_profile["creative_modules"]["synthesis_module_config"] = {
         "cross_domain_synthesis": False,
-        "archetype_mapping": False,
+        "domain_pattern_mapping": False,
     }
 
-    # Memory System Restructuring (MOUSE System Expansion)
-    # Status: Expanded MOUSE system configured for JSON Schema communication.
-    target_profile["memory_system"]["mouse_system_expansion"] = {
+    # Memory Cache System Configuration
+    # Status: Memory cache system configured for JSON Schema communication.
+    target_profile["memory_system"]["memory_cache_config"] = {
         "json_schema_encoding": True,
-        "chronofold_lattice_active": True,
+        "lattice_encoding_active": True,
     }
 
     # Standard Sentinel Nexus Uplink Metric (Reset to Base)
@@ -69,4 +68,3 @@ def default_profile() -> Dict[str, Any]:
         "creative_modules": {},
         "memory_system": {},
     }
-

@@ -8,8 +8,8 @@ Architecture:
                     │
         ┌───────────┼───────────┐
         ▼           ▼           ▼
-    🟢 Active   🟡 Pattern   🔴 Crystal
-     Memory      Emerge       Storage
+    Active      Pattern      Archived
+    Memory       Emerge       Storage
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from backend.domain.models import (
     CognitiveLens,
     ZoneMetrics,
     SymbolicMetadata,
-    GlyphMatch,
+    SymbolMatch,
 )
 from backend.services.memory_zones import (
     ThreeZoneMemory,
@@ -34,12 +34,12 @@ from backend.services.memory_zones import (
     get_memory_manager,
 )
 from backend.services.glyph_processor import (
-    GlyphProcessor,
-    get_glyph_processor,
+    SymbolPatternMatcher,
+    get_symbol_pattern_matcher,
 )
 from backend.services.glyph_parser import (
-    parse_glyph_sequence,
-    get_concept_for_glyph,
+    parse_symbol_sequence,
+    get_concept_for_symbol,
 )
 from backend.services.adhd_lens import (
     ADHDLens,
@@ -84,26 +84,26 @@ class CognitiveOrchestrator(ChatService):
         ai_adapter,
         default_lens: CognitiveLens = CognitiveLens.NEUROTYPICAL,
         memory_manager: Optional[ThreeZoneMemory] = None,
-        glyph_processor: Optional[GlyphProcessor] = None,
+        symbol_matcher: Optional[SymbolPatternMatcher] = None,
     ):
         """
         Initialize CognitiveOrchestrator.
-        
+
         Args:
             ai_adapter: Mock or Azure OpenAI adapter (inherited)
             default_lens: Default cognitive processing mode
             memory_manager: Three-zone memory manager (defaults to shared instance)
-            glyph_processor: Glyph processor for symbolic pattern recognition
+            symbol_matcher: Symbol pattern matcher for symbolic pattern recognition
         """
         super().__init__(ai_adapter)
         self.default_lens = default_lens
         self.memory_manager = memory_manager or get_memory_manager()
-        self.glyph_processor = glyph_processor or get_glyph_processor()
+        self.symbol_matcher = symbol_matcher or get_symbol_pattern_matcher()
         self.adhd_lens = create_adhd_lens()
         self.autism_lens = create_autism_lens()
         self.dyslexia_lens = create_dyslexia_lens()
         self._zone_counts = {zone: 0 for zone in CognitiveZone}
-        logger.info(f"🧠 CognitiveOrchestrator initialized with lens: {default_lens.value}")
+        logger.info(f"CognitiveOrchestrator initialized with lens: {default_lens.value}")
 
     async def process_message(
         self,
@@ -134,18 +134,18 @@ class CognitiveOrchestrator(ChatService):
         input_entropy = calculate_entropy(user_message)
         input_zone = classify_zone(input_entropy)
         
-        logger.debug(f"📊 Input entropy: {input_entropy:.2f} → Zone: {input_zone.value}")
-        
+        logger.debug(f"Input entropy: {input_entropy:.2f} -> Zone: {input_zone.value}")
+
         # 2. Process symbolic patterns
-        symbolic_metadata = self.glyph_processor.process_text(user_message)
-        
-        logger.debug(f"🜂 Symbolic processing: {len(symbolic_metadata.matched_glyphs)} matches, "
+        symbolic_metadata = self.symbol_matcher.process_text(user_message)
+
+        logger.debug(f"Symbolic processing: {len(symbolic_metadata.matched_symbols)} matches, "
                     f"confidence: {symbolic_metadata.processing_confidence:.2f}")
-        
-        # 2.5. Parse glyph sequences in the message
-        glyph_parse_result = parse_glyph_sequence(user_message)
-        
-        logger.debug(f"🜂 Glyph parsing: {glyph_parse_result['parsed_count']} glyphs parsed")
+
+        # 2.5. Parse symbol sequences in the message
+        symbol_parse_result = parse_symbol_sequence(user_message)
+
+        logger.debug(f"Symbol parsing: {symbol_parse_result['parsed_count']} symbols parsed")
         
         # 3. Apply lens transformation to context (placeholder for future enhancement)
         adjusted_context = self._apply_lens(context, active_lens)
@@ -154,7 +154,7 @@ class CognitiveOrchestrator(ChatService):
         try:
             response = await super().process_message(user_message, adjusted_context)
         except Exception as e:
-            logger.error(f"🔴 AI processing failed: {e}")
+            logger.error(f"AI processing failed: {e}")
             raise
         
         # 5. Extract response text and calculate output entropy
@@ -166,7 +166,7 @@ class CognitiveOrchestrator(ChatService):
         else:
             ai_text = ""
             output_entropy = 0.0
-            output_zone = CognitiveZone.CRYSTALLIZED
+            output_zone = CognitiveZone.ARCHIVED
         
         # 6. Update zone counts
         self._zone_counts[output_zone] += 1
@@ -180,19 +180,19 @@ class CognitiveOrchestrator(ChatService):
         )
         
         # 8. Publish symbolic event if matches found
-        if symbolic_metadata.matched_glyphs:
+        if symbolic_metadata.matched_symbols:
             self._publish_symbolic_event(
                 note_id=response.get("id", "unknown"),
                 symbolic_metadata=symbolic_metadata,
             )
-        
-        # 8.5. Publish glyph parsing event if glyphs found
-        if glyph_parse_result["parsed"]:
-            self._publish_glyph_event(
+
+        # 8.5. Publish symbol parsing event if symbols found
+        if symbol_parse_result["parsed"]:
+            self._publish_symbol_parse_event(
                 note_id=response.get("id", "unknown"),
-                glyph_data=glyph_parse_result,
+                symbol_data=symbol_parse_result,
             )
-        
+
         # 9. Add cognitive metadata to response
         response["_cognitive_metadata"] = {
             "input_entropy": round(input_entropy, 3),
@@ -200,12 +200,12 @@ class CognitiveOrchestrator(ChatService):
             "input_zone": input_zone.value,
             "output_zone": output_zone.value,
             "lens_applied": active_lens.value,
-            "symbolic_matches": len(symbolic_metadata.matched_glyphs),
+            "symbolic_matches": len(symbolic_metadata.matched_symbols),
             "dominant_topic": symbolic_metadata.dominant_topic,
             "symbolic_tags": list(symbolic_metadata.symbolic_tags),
             "symbolic_confidence": round(symbolic_metadata.processing_confidence, 3),
-            "parsed_glyphs": glyph_parse_result["parsed_count"],
-            "glyph_concepts": glyph_parse_result["concepts"],
+            "parsed_symbols": symbol_parse_result["parsed_count"],
+            "symbol_concepts": symbol_parse_result["concepts"],
         }
         
         return response
@@ -219,17 +219,17 @@ class CognitiveOrchestrator(ChatService):
         if lens == CognitiveLens.ADHD_BURST:
             # Apply ADHD lens transformation
             transformed = self.adhd_lens.transform_context(context)
-            logger.debug("🧠 Applied ADHD Burst lens transformation")
+            logger.debug("Applied ADHD Burst lens transformation")
             return transformed
         elif lens == CognitiveLens.AUTISM_PRECISION:
             # Apply Autism lens transformation
             transformed = self.autism_lens.transform_context(context)
-            logger.debug("🧠 Applied Autism Precision lens transformation")
+            logger.debug("Applied Autism Precision lens transformation")
             return transformed
         elif lens == CognitiveLens.DYSLEXIA_SPATIAL:
             # Apply Dyslexia lens transformation
             transformed = self.dyslexia_lens.transform_context(context)
-            logger.debug("🧠 Applied Dyslexia Spatial lens transformation")
+            logger.debug("Applied Dyslexia Spatial lens transformation")
             return transformed
         
         # Default: return context unchanged
@@ -256,7 +256,7 @@ class CognitiveOrchestrator(ChatService):
         try:
             bus.publish(event, topic="cognitive")
         except Exception as e:
-            logger.warning(f"⚠️ Failed to publish zone event: {e}")
+            logger.warning(f"Failed to publish zone event: {e}")
 
     def _publish_symbolic_event(
         self,
@@ -264,21 +264,21 @@ class CognitiveOrchestrator(ChatService):
         symbolic_metadata: SymbolicMetadata,
     ) -> None:
         """Publish symbolic pattern match event to EventBus."""
-        if not symbolic_metadata.matched_glyphs:
+        if not symbolic_metadata.matched_symbols:
             return
-            
+
         event = {
             "type": "symbolic.matched",
             "data": {
                 "note_id": note_id,
-                "matched_glyphs": [
+                "matched_symbols": [
                     {
-                        "shape": glyph.shape,
-                        "topic": glyph.topic,
-                        "confidence": round(glyph.confidence, 3),
-                        "matched_seeds": glyph.matched_seeds,
+                        "shape": symbol.shape,
+                        "topic": symbol.topic,
+                        "confidence": round(symbol.confidence, 3),
+                        "matched_seeds": symbol.matched_seeds,
                     }
-                    for glyph in symbolic_metadata.matched_glyphs
+                    for symbol in symbolic_metadata.matched_symbols
                 ],
                 "dominant_topic": symbolic_metadata.dominant_topic,
                 "symbolic_tags": list(symbolic_metadata.symbolic_tags),
@@ -288,31 +288,31 @@ class CognitiveOrchestrator(ChatService):
         try:
             bus.publish(event, topic="symbolic")
         except Exception as e:
-            logger.warning(f"⚠️ Failed to publish symbolic event: {e}")
+            logger.warning(f"Failed to publish symbolic event: {e}")
 
-    def _publish_glyph_event(
+    def _publish_symbol_parse_event(
         self,
         note_id: str,
-        glyph_data: Dict[str, Any],
+        symbol_data: Dict[str, Any],
     ) -> None:
-        """Publish glyph parsing event to EventBus."""
-        if not glyph_data.get("parsed", False):
+        """Publish symbol parsing event to EventBus."""
+        if not symbol_data.get("parsed", False):
             return
 
         event = {
-            "type": "glyph.parsed",
+            "type": "symbol.parsed",
             "data": {
                 "note_id": note_id,
-                "parsed_glyphs": glyph_data["glyphs"],
-                "concepts": glyph_data["concepts"],
-                "parsed_count": glyph_data["parsed_count"],
-                "sequence_length": glyph_data["sequence_length"],
+                "parsed_symbols": symbol_data["glyphs"],
+                "concepts": symbol_data["concepts"],
+                "parsed_count": symbol_data["parsed_count"],
+                "sequence_length": symbol_data["sequence_length"],
             }
         }
         try:
-            bus.publish(event, topic="glyph")
+            bus.publish(event, topic="symbol")
         except Exception as e:
-            logger.warning(f"⚠️ Failed to publish glyph event: {e}")
+            logger.warning(f"Failed to publish symbol parse event: {e}")
 
     def get_zone_metrics(self) -> Dict[str, Any]:
         """Return current zone distribution metrics."""

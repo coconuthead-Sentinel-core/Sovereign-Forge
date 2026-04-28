@@ -1,0 +1,829 @@
+================================================================================
+SOVEREIGN FORGE — ENTERPRISE AI COGNITIVE PLATFORM
+COMPLIANCE ALIGNMENT DOCUMENT
+NIST AI RMF 1.0 | ADA / WCAG 2.1 | SOC 2 | ISO 27001
+
+Document ID:     SOVEREIGN-COMPLIANCE-001
+Revision:        v001
+Date:            2026-04-24
+Classification:  Enterprise Internal — Controlled Distribution
+Author:          Compliance Office, Sovereign Forge Program
+Status:          ACTIVE — AUTHORITATIVE
+================================================================================
+
+TABLE OF CONTENTS
+----------------------------------------------------------------------
+  1.  Executive Compliance Summary
+  2.  NIST AI RMF 1.0 — GOVERN Function
+  3.  NIST AI RMF 1.0 — MAP Function
+  4.  NIST AI RMF 1.0 — MEASURE Function
+  5.  NIST AI RMF 1.0 — MANAGE Function
+  6.  ADA / WCAG 2.1 — Neurodivergent Accessibility Compliance
+  7.  SOC 2 Type II Control Mapping
+  8.  ISO 27001 Control Mapping
+  9.  Compliance Automation Architecture
+  10. AI Risk Inventory
+  11. Compliance Testing Evidence
+  12. Regulatory Obligations and Exceptions
+  13. Continuous Compliance Monitoring Plan
+  14. Document Control
+----------------------------------------------------------------------
+
+
+1. EXECUTIVE COMPLIANCE SUMMARY
+----------------------------------------------------------------------
+Sovereign Forge — Enterprise AI Cognitive Platform maintains
+compliance alignment with the following frameworks as of 2026-04-24:
+
+  NIST AI RMF 1.0:    Aligned (GOVERN / MAP / MEASURE / MANAGE)
+  ADA / WCAG 2.1:     Aligned (neurodivergent cognitive lens system)
+  SOC 2 Type II:      Aligned (Security, Availability, Confidentiality)
+  ISO 27001:          Aligned (A.9, A.12, A.14, A.16 control families)
+
+The defining compliance characteristic of Sovereign Forge is that
+COMPLIANCE IS AUTOMATED, NOT MANUAL. The GitHub Actions CI/CD pipeline
+(ci.yml) serves as the primary governance enforcement mechanism. Quality
+gates, security gates, and artifact hygiene gates are enforced by
+infrastructure — not by developer discipline or manual checklists.
+
+This approach maps directly to NIST AI RMF GOVERN function principles:
+automated governance is more reliable, auditable, and consistent than
+human-driven governance processes.
+
+Neurodivergent Accessibility is a first-class platform feature. The
+three cognitive lenses (ADHD, Autism, Dyslexia) are not add-on
+accommodations — they are core architectural components of the
+CognitiveOrchestrator. ADA and WCAG 2.1 compliance is therefore
+embedded in the platform's design DNA, not bolted on.
+----------------------------------------------------------------------
+
+
+2. NIST AI RMF 1.0 — GOVERN FUNCTION
+----------------------------------------------------------------------
+The GOVERN function establishes the organizational context, risk
+tolerance, and accountability structures for AI risk management.
+
+GOVERN 1.1 — Policies and Accountability
+----------------------------------------------------------------------
+Policy Document:       SOVEREIGN-SDLC-MASTER-001 (this suite)
+Accountability:        Platform Architect owns SDLC governance
+                       Security Officer owns security posture
+                       Compliance Manager owns this document
+AI System Owner:       Sovereign Forge Engineering Office
+Governance Mechanism:  GitHub Actions CI/CD pipeline (ci.yml)
+
+The GitHub Actions CI/CD pipeline is the primary governance
+enforcement mechanism. Key governance properties:
+
+  AUTOMATED ENFORCEMENT
+    ci.yml executes automatically on every push and pull request.
+    No human approval is required to trigger the pipeline.
+    No human can bypass the pipeline without administrator override,
+    which creates an audit trail in GitHub Actions logs.
+
+  IMMUTABLE AUDIT TRAIL
+    Every ci.yml execution is logged with:
+      - Commit SHA that triggered the run
+      - Timestamp of execution
+      - Pass/fail status of each test file
+      - Actor (GitHub user) who pushed the triggering commit
+    This log is immutable and accessible via GitHub Actions UI and API.
+
+  RELEASE GOVERNANCE
+    release.yml enforces that no release package is created without
+    passing through the automated pipeline. Release artifacts are
+    tagged with version numbers and attached to GitHub Releases,
+    creating a traceable release history.
+
+GOVERN 1.2 — Risk Tolerance
+----------------------------------------------------------------------
+Sovereign Forge's risk tolerance is defined as:
+
+  HIGH TOLERANCE:     Experimental cognitive lens configurations
+                      (reversible, user-configurable)
+  MEDIUM TOLERANCE:   Azure OpenAI availability (MOCK_AI fallback
+                      mitigates impact)
+  LOW TOLERANCE:      Credential exposure, neurodivergent
+                      misclassification, data breach
+  ZERO TOLERANCE:     Secrets committed to source code repository
+
+GOVERN 1.3 — Organizational Roles
+----------------------------------------------------------------------
+See SOVEREIGN-SDLC-MASTER-001 Section 13 for full role definitions.
+
+GOVERN 2.1 — Organizational Culture and Risk Awareness
+----------------------------------------------------------------------
+The CONTRIBUTING.md document and .github/copilot-instructions.md
+establish shared norms for all contributors (human and AI agents)
+working on the platform. Issue templates enforce structured
+problem reporting.
+
+GOVERN 3.1 — AI Risk Policies for Third-Party Entities
+----------------------------------------------------------------------
+Third-Party AI Dependency:  Azure OpenAI (Microsoft)
+Risk Policy:
+  - All Azure OpenAI calls are wrapped in the adapter pattern
+    (backend/adapters/azure_openai.py)
+  - MOCK_AI=true enables full platform operation without Azure
+    OpenAI connectivity
+  - No Azure OpenAI credentials are embedded in source code
+  - Azure AAD authentication is supported for production
+  - Third-party library risk is managed via requirements.txt version
+    pinning (see RISK-003)
+
+GOVERN 4.1 — Organizational Teams
+----------------------------------------------------------------------
+The platform operates with explicit team accountability for AI risks.
+The CognitiveOrchestrator's behavior is governed by the test suite
+(13 files), which constitutes the behavioral specification. Any
+change to orchestrator behavior must update the corresponding test
+file, maintaining test-as-specification discipline.
+
+GOVERN 5.1 — Policies for AI Deployment Context
+----------------------------------------------------------------------
+Current Deployment Context: VR Studios pilot on Azure App Service
+Permitted Use Cases:
+  - Enterprise cognitive assistance with neurodivergent lens formatting
+  - Glyph-based symbolic query processing
+  - Memory-zone-aware context management
+  - Real-time WebSocket cognitive event streaming
+Prohibited Use Cases:
+  - Processing personally identifiable health information without
+    SOC 2 / HIPAA certification upgrade
+  - Autonomous financial transaction execution
+  - Law enforcement or surveillance applications
+----------------------------------------------------------------------
+
+
+3. NIST AI RMF 1.0 — MAP FUNCTION
+----------------------------------------------------------------------
+The MAP function identifies and classifies AI risks relevant to the
+system's deployment context.
+
+MAP 1.1 — System Context and Risk Classification
+----------------------------------------------------------------------
+System Type:           Cognitive AI Orchestration Platform
+Deployment Context:    Enterprise SaaS (Azure App Service)
+Users:                 Enterprise knowledge workers, including
+                       neurodivergent users
+AI Components:         Azure OpenAI (language model), custom
+                       CognitiveOrchestrator, glyph processor,
+                       quantum nexus, lens transformers
+Data Processed:        User queries, conversation history, glyph
+                       sequences, cognitive profiles (lens preference)
+
+MAP 2.1 — AI Risk Identification
+----------------------------------------------------------------------
+The following AI risks have been identified and are fully documented
+in SOVEREIGN-RISK-REGISTER-001:
+
+RISK-001: Azure OpenAI API Outage
+  Category:       Availability / Third-Party Dependency
+  AI-Specific:    Language model unavailability renders primary
+                  intelligence layer inactive
+  Mapped Control: MOCK_AI=true fallback enables degraded-mode
+                  operation without AI responses
+
+RISK-002: GitHub Actions Secrets Exposure
+  Category:       Security / CI/CD Infrastructure
+  AI-Specific:    CI/CD workflow exposes AI API credentials if
+                  misconfigured
+  Mapped Control: GitHub Secrets management; no keys in source;
+                  deep_clean.ps1 credential removal
+
+RISK-003: Dependency Supply Chain Attack
+  Category:       Security / Software Supply Chain
+  AI-Specific:    Malicious package injects adversarial behavior
+                  into AI pipeline
+  Mapped Control: requirements.txt pinning; Dependabot alerts
+
+RISK-004: Cognitive Lens Misclassification
+  Category:       Fairness / Accessibility
+  AI-Specific:    AI system assigns wrong cognitive formatting lens,
+                  delivering inaccessible content to neurodivergent
+                  user
+  Mapped Control: Explicit preset activation; test coverage in
+                  adhd_lens, autism_lens, dyslexia_lens test files
+
+RISK-005: Cosmos DB Failure
+  Category:       Availability / Infrastructure
+  AI-Specific:    Loss of conversation memory disrupts AI context
+  Mapped Control: Mock repository fallback in cosmos_repo.py
+
+RISK-006: Memory Zone Drift
+  Category:       Accuracy / AI Behavior
+  AI-Specific:    Active/Pattern/Crystal zone misclassification causes
+                  incorrect context weighting in AI responses
+  Mapped Control: Entropy calculation algorithm; 23/23 zone tests
+
+RISK-007: Glyph Seed Injection
+  Category:       Security / Input Validation
+  AI-Specific:    Adversarial glyph sequences manipulate AI output
+  Mapped Control: POST /api/glyphs/validate endpoint; input
+                  sanitization in glyph_processor.py
+
+RISK-008: Cognitive Profile Data Exposure
+  Category:       Privacy / Confidentiality
+  AI-Specific:    Lens preference data reveals neurodivergent status,
+                  a sensitive personal characteristic
+  Mapped Control: Cosmos encryption at rest; no lens data in logs
+
+RISK-009: Release Pipeline Failure
+  Category:       Availability / DevOps
+  AI-Specific:    Release pipeline failure prevents AI platform
+                  updates from reaching production
+  Mapped Control: Manual deployment fallback; Docker containerization
+
+RISK-010: Azure Production Activation Delay
+  Category:       Operational / Cloud Configuration
+  AI-Specific:    Live Azure AI scoring unavailable until cloud
+                  configuration is complete
+  Mapped Control: Mock mode validation complete; local tests passing
+
+MAP 3.1 — Impact Assessment
+----------------------------------------------------------------------
+High-Impact AI Risks (Score >= 10):
+  RISK-001: Score 15 — Azure OpenAI API Outage
+  RISK-008: Score 10 — Cognitive Profile Data Exposure
+
+Medium-Impact AI Risks (Score 6-9):
+  RISK-003: Score 8 — Supply Chain Attack
+  RISK-004: Score 8 — Lens Misclassification
+  RISK-005: Score 8 — Cosmos DB Failure
+  RISK-010: Score 9 — Production Activation Delay
+
+Lower-Impact AI Risks (Score < 6):
+  RISK-002: Score 5 — Secrets Exposure (low probability)
+  RISK-006: Score 6 — Memory Zone Drift
+  RISK-007: Score 6 — Glyph Seed Injection
+  RISK-009: Score 6 — Release Pipeline Failure
+----------------------------------------------------------------------
+
+
+4. NIST AI RMF 1.0 — MEASURE FUNCTION
+----------------------------------------------------------------------
+The MEASURE function analyzes and assesses AI risk using quantitative
+and qualitative metrics.
+
+MEASURE 1.1 — Metrics Framework
+----------------------------------------------------------------------
+Sovereign Forge employs four measurement mechanisms:
+
+  MECHANISM 1: GitHub Actions CI/CD Pass Rate (KPI-001)
+    Metric:        % of ci.yml runs completing green (all tests pass)
+    Target:        100%
+    Measurement:   GitHub Actions execution log
+    Frequency:     Per commit (continuous)
+    AI Risk Link:  Detects behavioral regressions in lens transformers,
+                   orchestrator, memory zones, and glyph processors
+
+  MECHANISM 2: Azure AI Evaluation SDK Scores (KPI-002)
+    Metric:        Composite relevance/coherence/groundedness (1-5)
+    Target:        > 4.2 / 5.0
+    Measurement:   evaluation/eval_results.json
+    Frequency:     Per evaluation run (Phase 4: automated)
+    AI Risk Link:  Directly measures AI output quality; detects
+                   model drift and response degradation
+
+  MECHANISM 3: Test Suite Coverage (Quality Gate 1)
+    Metric:        Number of passing tests across 13 test files
+    Target:        100% pass rate (0 failures)
+    Measurement:   pytest output in ci.yml
+    Frequency:     Per commit (continuous)
+    AI Risk Link:  Validates cognitive lens accuracy, memory zone
+                   classification, and glyph processing correctness
+
+  MECHANISM 4: Smoke Test Suite (Quality Gate 3)
+    Metric:        End-to-end integration test pass rate
+    Target:        100%
+    Measurement:   scripts/smoke_test.py output
+    Frequency:     Pre-deployment
+    AI Risk Link:  Validates full AI pipeline from API to response
+
+MEASURE 2.1 — AI Evaluation Scoring Detail
+----------------------------------------------------------------------
+The Azure AI Evaluation SDK is integrated at evaluation/run_evaluation.py.
+Test dataset: data/test_queries.json (90 queries across categories).
+
+Scoring Categories:
+  RELEVANCE (1-5)
+    Measures whether the AI response directly addresses the user's
+    query. A score of 5 indicates the response is entirely focused
+    on the query with no irrelevant content.
+
+  COHERENCE (1-5)
+    Measures logical consistency and flow within the AI response.
+    A score of 5 indicates perfect logical structure with no
+    contradictions or non-sequiturs.
+
+  GROUNDEDNESS (1-5)
+    Measures whether the AI response is grounded in the provided
+    context (memory zones, glyph seeds, system prompt). A score of
+    5 indicates every claim is supported by context.
+
+  COMPOSITE (1-5)
+    Weighted average:
+      Relevance:    35% weight
+      Coherence:    30% weight
+      Groundedness: 35% weight
+    Target: > 4.2 composite
+
+MEASURE 3.1 — Cognitive Lens Accuracy Measurement
+----------------------------------------------------------------------
+Cognitive Lens Accuracy (KPI-003) is measured via:
+  - Test files: test_adhd_lens.py, test_autism_lens.py,
+    test_dyslexia_lens.py
+  - API endpoint: GET /api/cog/status (orchestrator status)
+  - Target: > 98% correct lens activation rate
+
+Memory Zone Classification Accuracy (KPI-004) is measured via:
+  - Test file: test_memory_zones.py (23/23 passing)
+  - Entropy calculation algorithm validation
+  - Target: > 99% zone assignment correctness
+----------------------------------------------------------------------
+
+
+5. NIST AI RMF 1.0 — MANAGE FUNCTION
+----------------------------------------------------------------------
+The MANAGE function implements risk response strategies for identified
+AI risks.
+
+MANAGE 1.1 — Risk Response Strategies
+----------------------------------------------------------------------
+The platform employs four primary risk response strategies:
+
+  STRATEGY 1: AVOID
+    Applied to: Credential exposure in source code (RISK-002)
+    Mechanism:  GitHub Secrets; .gitignore; .dockerignore;
+                deep_clean.ps1; no API keys in code (enforced by
+                CI/CD pipeline review)
+
+  STRATEGY 2: MITIGATE
+    Applied to: Azure OpenAI outage (RISK-001)
+    Mechanism:  MOCK_AI=true environment flag enables full platform
+                operation using the mock AI adapter. No live Azure
+                OpenAI connectivity required for development, testing,
+                or graceful degraded-mode operation.
+
+    Applied to: Cosmos DB failure (RISK-005)
+    Mechanism:  Mock repository fallback in cosmos_repo.py provides
+                in-memory data persistence when Cosmos DB is
+                unavailable.
+
+    Applied to: Cognitive lens misclassification (RISK-004)
+    Mechanism:  Explicit preset activation (user selects lens
+                explicitly rather than relying solely on automatic
+                classification). Test coverage validates each lens
+                transformation.
+
+  STRATEGY 3: TRANSFER
+    Applied to: Azure infrastructure risks (RISK-001, RISK-010)
+    Mechanism:  Azure SLA for App Service (99.95% uptime). Azure
+                OpenAI SLA. Microsoft bears infrastructure risk.
+
+  STRATEGY 4: ACCEPT
+    Applied to: Release pipeline failure (RISK-009)
+    Residual:   Manual deployment fallback using Docker containerization
+                is available if release.yml fails.
+
+MANAGE 2.1 — Incident Response
+----------------------------------------------------------------------
+Incident response is governed by:
+  - error_handler.py — structured error response formatting
+  - docs/TROUBLESHOOTING.md — common issues and resolution steps
+  - GitHub ISSUE_TEMPLATE/bug_report — structured incident reporting
+  - GitHub Actions failure notifications — CI/CD failure alerts
+
+MANAGE 3.1 — Continuous Improvement
+----------------------------------------------------------------------
+The CONTRIBUTING.md document establishes the contribution process
+that drives continuous improvement. The product backlog
+(SOVEREIGN-PRODUCT-BACKLOG-001) contains the prioritized improvement
+queue. The KPI dashboard (SOVEREIGN-KPI-DASHBOARD-001) provides
+quantitative improvement tracking.
+----------------------------------------------------------------------
+
+
+6. ADA / WCAG 2.1 — NEURODIVERGENT ACCESSIBILITY COMPLIANCE
+----------------------------------------------------------------------
+Sovereign Forge is designed from the ground up to serve neurodivergent
+users. The three cognitive lenses are not a feature — they are the
+platform's core value proposition. This section documents ADA and
+WCAG 2.1 compliance for the lens system.
+
+OVERVIEW OF COGNITIVE LENS SYSTEM
+----------------------------------------------------------------------
+The CognitiveOrchestrator routes every AI response through one of
+three cognitive lens transformers, selected either automatically based
+on user profile or explicitly via preset activation.
+
+LENS 1: ADHD LENS
+----------------------------------------------------------------------
+Service File:     backend/services/adhd_lens.py
+Test File:        tests/test_adhd_lens.py
+ADA Relevance:    ADHD is a recognized disability under ADA
+                  (Americans with Disabilities Act) Title III
+
+Design Principles:
+  - Chunked output: Long responses are broken into short, digestible
+    sections. No paragraph exceeds 3-4 sentences without a visual
+    break.
+  - Action orientation: Content is framed around what the user
+    should DO next, not background context.
+  - Prioritized information: Most critical information appears first.
+    Users with ADHD who lose focus mid-response still receive the
+    essential content.
+  - Reduced cognitive load: Minimal jargon, short sentences,
+    active voice throughout.
+  - Visual markers: Bullet points and numbered lists are preferred
+    over dense prose.
+
+WCAG 2.1 Principles Met:
+  1.3.1 Info and Relationships — structural markup preserves meaning
+  1.3.2 Meaningful Sequence — content order matches reading priority
+  2.4.6 Headings and Labels — clear section headings provided
+  3.1.5 Reading Level — reading level appropriate for cognitive load
+
+LENS 2: AUTISM LENS
+----------------------------------------------------------------------
+Service File:     backend/services/autism_lens.py
+Test File:        tests/test_autism_lens.py
+ADA Relevance:    Autism Spectrum Disorder is a recognized disability
+                  under ADA Title III
+
+Design Principles:
+  - Structured detail: Every response follows a predictable structure.
+    No ambiguity about what section is being read.
+  - Explicit sectioning: Section headers label every transition.
+    Users with autism who rely on predictable structure receive
+    consistent, navigable responses.
+  - Literal language: Idioms, metaphors, and figurative language are
+    avoided or explicitly labeled when used.
+  - Comprehensive coverage: No implied information. If something is
+    relevant, it is stated explicitly.
+  - Logical ordering: Content follows strict logical sequence from
+    premise to conclusion.
+
+WCAG 2.1 Principles Met:
+  1.3.1 Info and Relationships — explicit structural relationship
+  2.4.1 Bypass Blocks — clear section navigation
+  2.4.6 Headings and Labels — all sections explicitly labeled
+  3.1.4 Abbreviations — abbreviations expanded on first use
+  3.1.5 Reading Level — technical precision over simplification
+
+LENS 3: DYSLEXIA LENS
+----------------------------------------------------------------------
+Service File:     backend/services/dyslexia_lens.py
+Test File:        tests/test_dyslexia_lens.py
+ADA Relevance:    Dyslexia is a recognized learning disability under
+                  ADA and Section 504 of the Rehabilitation Act
+
+Design Principles:
+  - Spatial map formatting: Content is arranged spatially to reduce
+    linear text processing demands. Visual chunking creates
+    white space that aids reading.
+  - Short line lengths: Responses avoid long, unbroken lines of text
+    that are harder to track for users with dyslexia.
+  - High-contrast structure: Section breaks are visually distinct.
+    Important terms are identified through spacing, not just italics
+    or underline (which can blur for dyslexic readers).
+  - Phonological scaffolding: Word choices favor phonologically
+    simple, commonly recognized terms.
+  - Rhythm and pattern: Sentence structures follow predictable
+    rhythmic patterns that reduce decoding effort.
+
+WCAG 2.1 Principles Met:
+  1.4.3 Contrast (Minimum) — text contrast supports low-vision users
+  1.4.8 Visual Presentation — line length and spacing principles
+  1.4.12 Text Spacing — adequate letter/word/line spacing
+  2.4.6 Headings and Labels — clear visual structure
+
+ADA COMPLIANCE STATEMENT
+----------------------------------------------------------------------
+The cognitive lens system constitutes a reasonable accommodation for
+neurodivergent users under Title III of the Americans with Disabilities
+Act (42 U.S.C. § 12182). By providing three explicitly designed
+cognitive formatting profiles, Sovereign Forge ensures that users with
+ADHD, Autism Spectrum Disorder, and Dyslexia receive equivalent access
+to AI-generated content.
+
+This design approach exceeds the minimum ADA reasonable accommodation
+standard by embedding accessibility as a core platform feature rather
+than a post-hoc modification.
+
+WCAG 2.1 CONFORMANCE LEVEL
+----------------------------------------------------------------------
+Target Conformance:  Level AA
+Current Status:      Aligned with Level AA principles
+Exceptions:          Frontend dashboard.html visual accessibility
+                     audit pending (Phase 4 deliverable)
+----------------------------------------------------------------------
+
+
+7. SOC 2 TYPE II CONTROL MAPPING
+----------------------------------------------------------------------
+SOC 2 Trust Service Criteria (TSC) alignment for Sovereign Forge:
+
+SECURITY (CC6 — Logical and Physical Access Controls)
+----------------------------------------------------------------------
+CC6.1 — Logical Access Security Measures
+  Control:     X-API-Key header guard (backend/core/security.py)
+               api_key_guard() function raises HTTP 401 on invalid key
+               API_KEY configured via environment variable
+  Evidence:    security.py source code; environment variable injection
+
+CC6.2 — Prior to Issuance of System Credentials
+  Control:     API keys are provisioned via environment variables
+               and GitHub Secrets, not embedded in code
+  Evidence:    .gitignore exclusions; deep_clean.ps1 execution log
+
+CC6.3 — Established Access Control Criteria
+  Control:     All API access requires valid X-API-Key header
+               Azure OpenAI and Cosmos DB credentials injected
+               via environment (not committed to source)
+  Evidence:    backend/core/config.py; .github/workflows/ci.yml
+
+CC6.6 — Logical Access Security from Threats Outside System
+  Control:     Rate limiting in middleware.py
+               Error handler prevents stack trace exposure
+               WebSocket authentication via API key
+  Evidence:    backend/middleware.py; backend/error_handler.py
+
+AVAILABILITY (A1 — Availability)
+----------------------------------------------------------------------
+A1.1 — System Availability Performance
+  Control:     GET /api/healthz — liveness probe (HTTP 204)
+               GET /api/readyz — readiness probe (HTTP 200)
+               Azure App Service health check integration
+  Target SLA:  99.9% uptime (KPI-005)
+
+A1.2 — Recovery from Environmental and Software Failures
+  Control:     MOCK_AI=true — degrades gracefully when Azure OpenAI
+               is unavailable
+               Mock cosmos_repo — degrades gracefully when Cosmos
+               DB is unavailable
+               Docker containerization — rapid restart on failure
+  Evidence:    backend/mock_adapter.py; backend/infrastructure/
+               cosmos_repo.py (mock branch)
+
+CONFIDENTIALITY (C1 — Confidentiality)
+----------------------------------------------------------------------
+C1.1 — Identification of Confidential Information
+  Control:     Cognitive profile (lens preference) data is classified
+               as sensitive personal information
+               Conversation history stored in Cosmos DB with
+               encryption at rest
+
+C1.2 — Disposal of Confidential Information
+  Control:     DELETE /api/cog/memory — memory purge endpoint
+               deep_clean.ps1 removes local cached data
+  Evidence:    API.md; scripts/deep_clean.ps1
+
+PROCESSING INTEGRITY (PI1)
+----------------------------------------------------------------------
+PI1.1 — Information Processing
+  Control:     Pydantic v2 validation on all API inputs
+               Glyph sequence validation (POST /api/glyphs/validate)
+               Azure AI Evaluation SDK scores output quality
+  Evidence:    backend/schemas.py; evaluation/run_evaluation.py
+----------------------------------------------------------------------
+
+
+8. ISO 27001 CONTROL MAPPING
+----------------------------------------------------------------------
+ISO/IEC 27001:2022 Annex A control alignment:
+
+A.5 — Information Security Policies
+  A.5.1:  SOVEREIGN-SDLC-MASTER-001 and SOVEREIGN-SECURITY-PLAN-001
+          constitute the information security policy documentation
+          for the Sovereign Forge platform.
+
+A.8 — Asset Management
+  A.8.1:  SOVEREIGN-AUDIT-MANIFEST-001 provides the complete asset
+          inventory (file manifest) for all platform assets.
+  A.8.2:  Assets classified by sensitivity:
+            CRITICAL: API keys, Cosmos DB connection strings
+            SENSITIVE: Cognitive profile data, evaluation results
+            INTERNAL: Source code, configuration
+            PUBLIC:   API documentation, README
+
+A.9 — Access Control
+  A.9.1:  Access control policy implemented via X-API-Key guard
+          (backend/core/security.py)
+  A.9.2:  User access management via API key provisioning process
+  A.9.4:  System and application access control via api_key_guard()
+
+A.10 — Cryptography
+  A.10.1: Azure Cosmos DB encryption at rest (managed by Azure)
+          HTTPS enforced for all Azure App Service endpoints
+
+A.12 — Operations Security
+  A.12.1: Operational procedures documented in CONTRIBUTING.md,
+          TROUBLESHOOTING.md, Makefile
+  A.12.2: Protection from malware via .gitignore, .dockerignore,
+          and supply chain pinning (requirements.txt)
+  A.12.5: Production cleanup scripts (deep_clean.ps1) prevent
+          unauthorized software installation artifacts
+  A.12.6: Technical vulnerability management via Dependabot alerts
+          and requirements.txt version pinning
+
+A.14 — System Acquisition, Development, and Maintenance
+  A.14.1: Security requirements addressed in SDLC phases (see
+          SOVEREIGN-SDLC-MASTER-001 Section 5)
+  A.14.2: Secure development lifecycle enforced via GitHub Actions
+          CI/CD — all code changes go through automated testing
+          before merge
+  A.14.3: Test data protection — evaluation uses structured test
+          queries (test_queries.json), not production data
+
+A.16 — Information Security Incident Management
+  A.16.1: Incident reporting via GitHub ISSUE_TEMPLATE/bug_report
+          Error handling via backend/error_handler.py
+          Troubleshooting guidance in docs/TROUBLESHOOTING.md
+
+A.17 — Business Continuity
+  A.17.1: Continuity planning via MOCK_AI fallback, mock cosmos_repo,
+          and Docker containerization for rapid recovery
+----------------------------------------------------------------------
+
+
+9. COMPLIANCE AUTOMATION ARCHITECTURE
+----------------------------------------------------------------------
+The following diagram describes how compliance is enforced
+automatically in Sovereign Forge:
+
+  Developer Commits Code
+         |
+         v
+  GitHub Actions Triggers ci.yml
+         |
+         +---> Install Dependencies (requirements.txt)
+         |
+         +---> Inject Secrets (GitHub Secrets, not source code)
+         |
+         +---> Execute 13 Test Files (pytest tests/ -v)
+         |        |
+         |        +--- test_adhd_lens.py   [WCAG 2.1 / ADA]
+         |        +--- test_autism_lens.py  [WCAG 2.1 / ADA]
+         |        +--- test_dyslexia_lens.py [WCAG 2.1 / ADA]
+         |        +--- test_domain.py       [SOC 2 PI1.1]
+         |        +--- test_eventbus.py     [SOC 2 A1.2]
+         |        +--- test_glyph_*         [ISO 27001 A.14]
+         |        +--- test_memory_zones.py [NIST MAP / MEASURE]
+         |        +--- test_cognitive_*     [NIST MEASURE]
+         |        +--- test_vectors.py      [SOC 2 PI1.1]
+         |        +--- test_ws_api.py       [SOC 2 CC6.6]
+         |
+         +---> Gate Decision: ALL TESTS PASS?
+                   |                |
+                  YES               NO
+                   |                |
+                   v                v
+           Merge Permitted    Merge BLOCKED
+                                   |
+                               Developer
+                             must fix and
+                             re-push
+         |
+         v
+  Developer Runs deep_clean.ps1 (Security Gate 4)
+         |
+         v
+  Developer Pushes Release Tag
+         |
+         v
+  GitHub Actions Triggers release.yml
+         |
+         +---> Build Artifacts
+         +---> Create GitHub Release
+         +---> Attach Artifacts with Version Tag
+         |
+         v
+  Immutable Release Record in GitHub
+  (Audit evidence for SOC 2 / ISO 27001)
+----------------------------------------------------------------------
+
+
+10. AI RISK INVENTORY
+----------------------------------------------------------------------
+Full risk details are in SOVEREIGN-RISK-REGISTER-001. This section
+provides the compliance-oriented view of each AI risk.
+
+Risk              Compliance Framework  Control Type   Status
+----------------------------------------------------------------------
+RISK-001 AOAI     NIST MANAGE           Mitigate       MITIGATED
+RISK-002 Secrets  ISO 27001 A.9         Avoid          MITIGATED
+RISK-003 Supply   ISO 27001 A.12.6      Mitigate       MITIGATED
+RISK-004 Lens     ADA / WCAG 2.1        Mitigate       MITIGATED
+RISK-005 Cosmos   SOC 2 A1.2            Mitigate       MITIGATED
+RISK-006 Zone     NIST MEASURE          Mitigate       MITIGATED
+RISK-007 Glyph    ISO 27001 A.14        Mitigate       MITIGATED
+RISK-008 Privacy  SOC 2 C1 / ISO A.8    Mitigate       MITIGATED
+RISK-009 Release  SOC 2 A1 / NIST       Accept         ACCEPTED
+RISK-010 Azure    NIST MANAGE           Accept/Monitor MONITORED
+----------------------------------------------------------------------
+
+
+11. COMPLIANCE TESTING EVIDENCE
+----------------------------------------------------------------------
+The following evidence artifacts support compliance claims:
+
+  ARTIFACT                    SUPPORTS                  LOCATION
+  -------------------------   -----------------------   ---------------
+  ci.yml execution logs       NIST GOVERN; SOC 2 CC6    GitHub Actions
+  pytest output (13 files)    NIST MEASURE; ADA         GitHub Actions
+  eval_results.json           NIST MEASURE (AI quality) evaluation/
+  deep_clean.ps1              SOC 2 CC6.2; ISO A.12.5   scripts/
+  security.py                 SOC 2 CC6.1; ISO A.9.4    backend/core/
+  .gitignore                  ISO 27001 A.9.2           repository root
+  .dockerignore               ISO 27001 A.9.2           repository root
+  requirements.txt            ISO 27001 A.12.6          repository root
+  CONTRIBUTING.md             ISO 27001 A.12.1          repository root
+  ISSUE_TEMPLATE/bug_report   ISO 27001 A.16.1          .github/
+----------------------------------------------------------------------
+
+
+12. REGULATORY OBLIGATIONS AND EXCEPTIONS
+----------------------------------------------------------------------
+CURRENT OBLIGATIONS:
+  ADA Title III:              Active obligation. Neurodivergent lens
+                              system satisfies reasonable accommodation.
+  WCAG 2.1 Level AA:          Target alignment. Frontend dashboard
+                              audit pending.
+
+POTENTIAL FUTURE OBLIGATIONS (Phase 4):
+  HIPAA:                      If medical use cases are introduced
+                              (Multi-tenant Phase 4 may include
+                              medical clients). Requires upgrade.
+  GDPR:                       If EU users process personal data.
+                              Requires data residency review and
+                              DPA agreements with Azure.
+  SOC 2 Type II (Formal):     If enterprise clients require formal
+                              audit report. Current: alignment only.
+
+EXCEPTIONS:
+  - WCAG 2.1 Level AAA:       Not targeted. Level AA is sufficient
+                              for current use cases.
+  - HIPAA:                    Not current obligation. Excluded from
+                              scope until Phase 4 medical tenant.
+  - PCI DSS:                  Not applicable. No payment card data
+                              processed.
+----------------------------------------------------------------------
+
+
+13. CONTINUOUS COMPLIANCE MONITORING PLAN
+----------------------------------------------------------------------
+MONITORING CADENCE:
+
+  CONTINUOUS (per commit):
+    - ci.yml execution monitors all 13 test files
+    - GitHub Actions log provides immutable audit trail
+
+  WEEKLY:
+    - Review KPI-001 (CI Pipeline Pass Rate)
+    - Review KPI-003 (Cognitive Lens Accuracy)
+    - Review any new GitHub Issues filed via bug_report template
+
+  SPRINT (bi-weekly):
+    - Execute evaluation/run_evaluation.py and review KPI-002
+    - Review RISK-REGISTER for any new risk materializations
+    - Update this compliance document if new controls are added
+
+  MONTHLY:
+    - Full review of all 7 enterprise_docs documents
+    - SOC 2 and ISO 27001 control gap assessment
+    - ADA / WCAG 2.1 lens transformation review with test results
+
+  PHASE GATE:
+    - At each SDLC phase gate, full compliance review required
+    - Phase 4 gate requires: formal SOC 2 scope assessment,
+      GDPR readiness review (if EU users), HIPAA scope review
+      (if medical tenants)
+----------------------------------------------------------------------
+
+
+14. DOCUMENT CONTROL
+----------------------------------------------------------------------
+Document ID:      SOVEREIGN-COMPLIANCE-001
+Version:          v001
+Created:          2026-04-24
+Author:           Compliance Office, Sovereign Forge Program
+Owner:            Compliance Manager
+Review Authority: Platform Architect + Security Officer
+Distribution:     Engineering, Legal, Compliance, Executive
+
+Next Review:      2026-05-08
+
+Change Log:
+  v001 | 2026-04-24 | Initial creation. NIST AI RMF 1.0 full
+       |            | four-function alignment documented. ADA/WCAG
+       |            | lens system compliance detailed. SOC 2 and
+       |            | ISO 27001 control mapping complete.
+----------------------------------------------------------------------
+
+
+================================================================================
+END OF DOCUMENT: SOVEREIGN-COMPLIANCE-001_2026-04-24_v001.txt
+Classification: Enterprise Internal — Controlled Distribution
+Total Sections: 14 | Approx. Lines: 430+
+================================================================================

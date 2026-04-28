@@ -1,8 +1,8 @@
 """
 Sigma Network Engine: feature-flagged cognitive engine driven by Sentinel profile.
 
-This module demonstrates how to map the Zero-State profile into runtime flags
-for conditional behavior. It also provides a tiny MOUSE_Cache_Manager stub
+This module demonstrates how to map the default profile into runtime flags
+for conditional behavior. It also provides a MemoryCacheManager
 that persists writes via a JSONStore for traceability.
 """
 
@@ -15,14 +15,14 @@ from backend.service import service  # use singleton to access profile
 from backend.storage import JSONStore
 
 
-class MOUSE_Cache_Manager:
+class MemoryCacheManager:
     """Minimal write-through cache using JSONStore.
 
-    Writes are appended to data/mouse_cache.json with a simple schema:
+    Writes are appended to data/memory_cache.json with a simple schema:
       { "encoding": str, "items": [ {"payload": any} ... ] }
     """
 
-    _store = JSONStore(path="data/mouse_cache.json")
+    _store = JSONStore(path="data/memory_cache.json")
 
     @classmethod
     def write_memory(cls, obj: Any, *, encoding: str = "basic") -> None:
@@ -44,21 +44,21 @@ class SigmaNetworkEngine:
 
     def _set_feature_flags(self) -> None:
         p = self.profile or {}
-        # COGNITIVE CORE FLAGS (NeuralPrime)
+        # COGNITIVE CORE FLAGS
         self.GNN_ACTIVE = (
             p.get("cognitive_core", {})
-            .get("neuralprime_extensions", {})
+            .get("gnn_extensions", {})
             .get("GNN_connectivity_rules", False)
         )
         self.MULTI_LANG_ACTIVE = (
             p.get("cognitive_core", {})
-            .get("neuralprime_extensions", {})
+            .get("gnn_extensions", {})
             .get("multi_language_abstraction", False)
         )
-        # MEMORY SYSTEM FLAGS (MOUSE)
-        mem = p.get("memory_system", {}).get("mouse_system_expansion", {})
+        # MEMORY SYSTEM FLAGS (MemoryCache)
+        mem = p.get("memory_system", {}).get("memory_cache_config", {})
         self.JSON_SCHEMA_ENCODING = bool(mem.get("json_schema_encoding", False))
-        self.CHRONOFOLD_ACTIVE = bool(mem.get("chronofold_lattice_active", False))
+        self.LATTICE_ENCODING_ACTIVE = bool(mem.get("lattice_encoding_active", False))
         self.log.info(
             "Engine Initialized. GNN_ACTIVE=%s, JSON_SCHEMA=%s",
             self.GNN_ACTIVE,
@@ -77,12 +77,12 @@ class SigmaNetworkEngine:
         # Memory System Logic
         if self.JSON_SCHEMA_ENCODING:
             self.log.debug("Writing memory via JSON Schema.")
-            MOUSE_Cache_Manager.write_memory(output, encoding="json_schema")
-        elif self.CHRONOFOLD_ACTIVE:
-            self.log.debug("Writing memory via ChronoFold Lattice.")
-            MOUSE_Cache_Manager.write_memory(output, encoding="chronofold_lite")
+            MemoryCacheManager.write_memory(output, encoding="json_schema")
+        elif self.LATTICE_ENCODING_ACTIVE:
+            self.log.debug("Writing memory via lattice encoding.")
+            MemoryCacheManager.write_memory(output, encoding="lattice_encoding_lite")
         else:
-            MOUSE_Cache_Manager.write_memory(output, encoding="basic_txt")
+            MemoryCacheManager.write_memory(output, encoding="basic_txt")
 
         return output
 
@@ -92,4 +92,3 @@ class SigmaNetworkEngine:
 
     def _run_standard_logic(self, data: Any) -> Any:
         return {"mode": "standard", "value": data}
-

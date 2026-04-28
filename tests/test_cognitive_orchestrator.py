@@ -71,10 +71,10 @@ def test_classify_zone_mid_entropy():
 
 
 def test_classify_zone_low_entropy():
-    """Low entropy (<0.3) routes to CRYSTALLIZED zone."""
-    assert classify_zone(0.1) == CognitiveZone.CRYSTALLIZED
-    assert classify_zone(0.0) == CognitiveZone.CRYSTALLIZED
-    assert classify_zone(0.29) == CognitiveZone.CRYSTALLIZED
+    """Low entropy (<0.3) routes to ARCHIVED zone."""
+    assert classify_zone(0.1) == CognitiveZone.ARCHIVED
+    assert classify_zone(0.0) == CognitiveZone.ARCHIVED
+    assert classify_zone(0.29) == CognitiveZone.ARCHIVED
 
 
 def test_classify_zone_boundary_high():
@@ -83,8 +83,8 @@ def test_classify_zone_boundary_high():
 
 
 def test_classify_zone_boundary_low():
-    """Boundary test: 0.3 should be CRYSTALLIZED."""
-    assert classify_zone(0.3) == CognitiveZone.CRYSTALLIZED
+    """Boundary test: 0.3 should be ARCHIVED."""
+    assert classify_zone(0.3) == CognitiveZone.ARCHIVED
 
 
 # --- Orchestrator Inheritance Tests ---

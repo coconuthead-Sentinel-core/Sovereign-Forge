@@ -1,0 +1,838 @@
+================================================================================
+SOVEREIGN FORGE — ENTERPRISE AI COGNITIVE PLATFORM
+RISK REGISTER — 10 IDENTIFIED RISKS
+
+Document ID:     SOVEREIGN-RISK-REGISTER-001
+Revision:        v001
+Date:            2026-04-24
+Classification:  Enterprise Internal — Controlled Distribution
+Author:          Engineering Office, Sovereign Forge Program
+Status:          ACTIVE — AUTHORITATIVE
+================================================================================
+
+TABLE OF CONTENTS
+----------------------------------------------------------------------
+  1.  Risk Management Framework
+  2.  Risk Scoring Methodology
+  3.  Risk Summary Matrix
+  4.  RISK-001: Azure OpenAI API Outage
+  5.  RISK-002: GitHub Actions Secrets Exposure
+  6.  RISK-003: Dependency Supply Chain Attack
+  7.  RISK-004: Cognitive Lens Misclassification
+  8.  RISK-005: Cosmos DB Failure
+  9.  RISK-006: Memory Zone Drift
+  10. RISK-007: Glyph Seed Injection
+  11. RISK-008: Cognitive Profile Data Exposure
+  12. RISK-009: Release Pipeline Failure
+  13. RISK-010: Azure Production Activation Delay
+  14. Risk Review Schedule
+  15. Document Control
+----------------------------------------------------------------------
+
+
+1. RISK MANAGEMENT FRAMEWORK
+----------------------------------------------------------------------
+The Sovereign Forge Risk Register applies the NIST AI RMF MAP and
+MANAGE functions to identify, assess, and manage risks specific to the
+platform. Risks are categorized into three domains:
+
+  AI RISKS:         Risks arising from the AI system's behavior,
+                    accuracy, or AI provider dependency.
+
+  DEVOPS RISKS:     Risks unique to Sovereign Forge's CI/CD pipeline
+                    (ci.yml, release.yml). These risks are specific
+                    to projects with automated deployment pipelines
+                    and do not apply to less mature projects.
+
+  INFRASTRUCTURE:   Risks related to Azure cloud services, Cosmos DB,
+                    and container deployment.
+
+This register is reviewed at every sprint and updated whenever a new
+risk materializes or an existing risk changes in probability, impact,
+or mitigation status.
+
+Responsible Party:  Platform Architect (owns risk register)
+Review Frequency:   Per sprint (bi-weekly)
+Escalation:         Risks scored > 10 require executive notification
+----------------------------------------------------------------------
+
+
+2. RISK SCORING METHODOLOGY
+----------------------------------------------------------------------
+Each risk is scored using a Probability x Impact matrix:
+
+PROBABILITY (P) — Likelihood of occurrence
+  1 = Very Unlikely   (< 10% chance in next 12 months)
+  2 = Unlikely        (10-30% chance in next 12 months)
+  3 = Possible        (30-60% chance in next 12 months)
+  4 = Likely          (60-80% chance in next 12 months)
+  5 = Very Likely     (> 80% chance in next 12 months)
+
+IMPACT (I) — Severity of consequences if risk materializes
+  1 = Negligible      (minimal disruption, resolved in hours)
+  2 = Minor           (limited disruption, resolved in < 1 day)
+  3 = Moderate        (significant disruption, resolved in < 1 week)
+  4 = Major           (platform partially unavailable, data risk)
+  5 = Critical        (platform unavailable, data loss, or breach)
+
+RISK SCORE = P x I (range: 1-25)
+
+RISK TIERS:
+  RED    (Score 15-25): Immediate action required; executive
+                        notification; dedicated sprint capacity
+  ORANGE (Score 10-14): High priority; tracked in sprint backlog
+  YELLOW (Score 6-9):   Medium priority; monitored and mitigated
+  GREEN  (Score 1-5):   Low priority; reviewed quarterly
+
+RESIDUAL RISK:
+  After mitigation controls are applied, the remaining risk is the
+  Residual Risk. The target is to reduce all risks to GREEN or
+  YELLOW through mitigation.
+----------------------------------------------------------------------
+
+
+3. RISK SUMMARY MATRIX
+----------------------------------------------------------------------
+ID        Risk Name                        P   I   Score  Tier
+----------------------------------------------------------------------
+RISK-001  Azure OpenAI API Outage          3   5   15     RED
+RISK-002  GitHub Actions Secrets Exposure  1   5   5      GREEN
+RISK-003  Dependency Supply Chain Attack   2   4   8      YELLOW
+RISK-004  Cognitive Lens Misclassification 2   4   8      YELLOW
+RISK-005  Cosmos DB Failure                2   4   8      YELLOW
+RISK-006  Memory Zone Drift                2   3   6      YELLOW
+RISK-007  Glyph Seed Injection             2   3   6      YELLOW
+RISK-008  Cognitive Profile Data Exposure  2   5   10     ORANGE
+RISK-009  Release Pipeline Failure         2   3   6      YELLOW
+RISK-010  Azure Production Activation Delay 3  3   9      YELLOW
+----------------------------------------------------------------------
+Risks Requiring Executive Notification:   RISK-001 (Score 15)
+Risks Requiring Sprint Capacity:          RISK-001, RISK-008
+----------------------------------------------------------------------
+
+
+4. RISK-001: AZURE OPENAI API OUTAGE
+----------------------------------------------------------------------
+Risk ID:          RISK-001
+Risk Name:        Azure OpenAI API Outage
+Category:         AI Risk / Third-Party Dependency
+Unique to SF:     No (shared with other AI platforms)
+
+Probability:      3 — Possible (Azure OpenAI has experienced
+                  regional outages; Microsoft publishes availability
+                  data showing occasional degraded service periods)
+Impact:           5 — Critical (without Azure OpenAI, the primary
+                  intelligence layer is inactive; users receive no
+                  AI-generated responses)
+Risk Score:       15 [RED]
+
+DESCRIPTION:
+  Azure OpenAI (AOAI_ENDPOINT) is the primary language model provider
+  for Sovereign Forge. All AI response generation depends on
+  successful API calls to Azure OpenAI. A regional outage, API
+  throttling, or quota exhaustion at the Azure OpenAI service level
+  would render the platform unable to generate cognitive responses,
+  breaking the core value proposition for VR Studios and future
+  tenants.
+
+  Related risks: RISK-010 (production activation delay means live
+  Azure OpenAI dependency is not yet fully tested in production).
+
+TRIGGER CONDITIONS:
+  - Azure OpenAI returns HTTP 503 for > 5 consecutive requests
+  - Azure OpenAI response latency exceeds 30 seconds
+  - Azure OpenAI quota exhaustion (HTTP 429) with no reset
+  - Azure regional outage affecting the AOAI_ENDPOINT region
+
+MITIGATION CONTROLS:
+  PRIMARY CONTROL: MOCK_AI=true Fallback
+    Implementation: backend/mock_adapter.py
+    Activation:     Set MOCK_AI=true in environment variables
+    Effect:         Platform operates in degraded mode — all API
+                    endpoints remain functional; AI responses are
+                    replaced with structured mock responses
+    Limitation:     Mock responses are not AI-generated; quality
+                    is lower than live AOAI responses
+
+  SECONDARY CONTROL: Retry Logic
+    Implementation: azure_openai.py should implement exponential
+                    backoff retry (3 attempts before fallback)
+    Effect:         Transient outages (< 60 seconds) are handled
+                    transparently
+
+  TERTIARY CONTROL: Azure Monitor Alerting
+    Implementation: Azure Monitor alert on AOAI endpoint health
+    Effect:         Operations team notified before users are impacted
+
+RESIDUAL RISK AFTER MITIGATION:
+  Probability:    2 (MOCK_AI fallback reduces user impact)
+  Impact:         3 (degraded mode is functional, not critical)
+  Residual Score: 6 [YELLOW]
+
+RISK OWNER:       Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (mock fallback operational)
+----------------------------------------------------------------------
+
+
+5. RISK-002: GITHUB ACTIONS SECRETS EXPOSURE
+----------------------------------------------------------------------
+Risk ID:          RISK-002
+Risk Name:        GitHub Actions Secrets Exposure
+Category:         Security / CI/CD Infrastructure
+Unique to SF:     YES — THIS RISK IS UNIQUE TO SOVEREIGN FORGE
+                  Only Sovereign Forge has a GitHub Actions CI/CD
+                  pipeline with secrets. No other project in the
+                  portfolio has this attack surface.
+
+Probability:      1 — Very Unlikely (GitHub's secrets masking is
+                  well-tested; controlled repository limits
+                  attack vectors)
+Impact:           5 — Critical (API key or Cosmos DB connection
+                  string exposure would compromise the entire
+                  platform)
+Risk Score:       5 [GREEN]
+
+DESCRIPTION:
+  GitHub Actions workflows (ci.yml and release.yml) require access
+  to secrets (Azure OpenAI key, Cosmos DB connection string,
+  application API key). These secrets are stored as GitHub Repository
+  Secrets and injected into the workflow environment at runtime.
+  If a workflow is misconfigured to echo secrets to logs, or if a
+  malicious dependency exfiltrates secrets during a CI run, the
+  platform's credentials could be exposed.
+
+  This risk is UNIQUE TO SOVEREIGN FORGE because it is the only
+  project in the portfolio with a CI/CD pipeline that accesses
+  production credentials. Other projects have no automated pipeline
+  and therefore cannot expose credentials through CI/CD mechanisms.
+
+ATTACK VECTORS:
+  Vector 1: Accidental echo of secrets in workflow steps
+    (e.g., "run: echo ${{ secrets.API_KEY }}")
+    Mitigation: GitHub Actions masks known secret values in logs
+                automatically; code review catches echo commands
+
+  Vector 2: Malicious npm/pip dependency exfiltrates secrets
+    (e.g., compromised package reads ENV and sends to remote URL)
+    Mitigation: MOCK_AI=true in CI — real secrets not needed;
+                requirements.txt exact pinning limits supply chain
+                attack surface
+
+  Vector 3: Fork pull request accessing repository secrets
+    (GitHub Actions does not expose secrets to PRs from forks
+     by default; this is a platform-level control)
+    Mitigation: Default GitHub Actions configuration (not modified)
+
+  Vector 4: Compromised GitHub Actions runner
+    (rare; GitHub-hosted runners are ephemeral)
+    Mitigation: Ephemeral runners destroyed after each run
+
+MITIGATION CONTROLS:
+  CONTROL 1: MOCK_AI=true in CI
+    Effect:    No real API credentials required for CI test execution.
+               Even if secrets were exposed, MOCK_AI=true means the
+               credentials injected in CI are placeholder values.
+
+  CONTROL 2: GitHub Repository Secrets Management
+    Effect:    Secrets are stored encrypted at rest by GitHub.
+               Masked in all workflow logs automatically.
+               Not accessible via GitHub API.
+
+  CONTROL 3: No Credentials in Source Code
+    Effect:    deep_clean.ps1 scans for credential patterns.
+               .gitignore prevents .env file commits.
+               All credentials via environment only (Rule 1).
+
+  CONTROL 4: Exact Version Pinning (requirements.txt)
+    Effect:    Reduces supply chain attack surface for pip packages
+               that could exfiltrate secrets.
+
+RESIDUAL RISK AFTER MITIGATION:
+  Probability:    1 (controls are comprehensive)
+  Impact:         5 (impact remains critical if breached)
+  Residual Score: 5 [GREEN]
+
+RISK OWNER:       Security Officer
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (controls operational)
+----------------------------------------------------------------------
+
+
+6. RISK-003: DEPENDENCY SUPPLY CHAIN ATTACK
+----------------------------------------------------------------------
+Risk ID:          RISK-003
+Risk Name:        Dependency Supply Chain Attack
+Category:         Security / Software Supply Chain
+Unique to SF:     YES — CI/CD-SPECIFIC VARIANT
+                  While supply chain attacks affect all Python projects,
+                  the CI/CD attack surface (malicious package running
+                  during automated CI) is unique to Sovereign Forge.
+
+Probability:      2 — Unlikely (known attack; mitigated by pinning)
+Impact:           4 — Major (malicious package could inject adversarial
+                  behavior into AI pipeline or exfiltrate secrets)
+Risk Score:       8 [YELLOW]
+
+DESCRIPTION:
+  Sovereign Forge depends on a set of Python packages installed via
+  pip install -r requirements.txt. A supply chain attack could occur
+  if:
+    (a) A registered package is compromised (e.g., maintainer account
+        taken over and malicious version published)
+    (b) A typosquatting package mimics a legitimate package name
+    (c) A dependency of a dependency is compromised (transitive
+        dependency attack)
+
+  The CI/CD-specific danger is that the attack executes within the
+  automated pipeline on every CI run, potentially with access to
+  GitHub Secrets if MOCK_AI=false is used in CI (currently mitigated
+  by MOCK_AI=true policy).
+
+MITIGATION CONTROLS:
+  CONTROL 1: Exact Version Pinning (requirements.txt)
+    Effect:    Floating version specifiers (>=) allow automatic
+               upgrade to compromised versions. Exact pinning
+               (==) prevents automatic upgrade.
+
+  CONTROL 2: Dependabot Vulnerability Alerts
+    Effect:    GitHub Dependabot scans requirements.txt for known
+               CVEs and creates PRs for vulnerable packages.
+               New vulnerabilities are flagged before they propagate.
+
+  CONTROL 3: MOCK_AI=true in CI
+    Effect:    Even if a malicious package executes in CI, real
+               production credentials are not present in the CI
+               environment.
+
+  PHASE 4 CONTROL: pip --require-hashes
+    Effect:    Hash verification ensures the installed package
+               matches the exact bytes specified. Prevents even
+               same-version substitution attacks.
+    Status:    Planned for Phase 4.
+
+RESIDUAL RISK:    Probability 2, Impact 3, Score 6 [YELLOW]
+RISK OWNER:       Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           PARTIALLY MITIGATED (hash verification planned)
+----------------------------------------------------------------------
+
+
+7. RISK-004: COGNITIVE LENS MISCLASSIFICATION
+----------------------------------------------------------------------
+Risk ID:          RISK-004
+Risk Name:        Cognitive Lens Misclassification
+Category:         AI Risk / Fairness / Accessibility
+Unique to SF:     YES — UNIQUE TO SOVEREIGN FORGE
+                  No other project in the portfolio has a
+                  neurodivergent lens system. This risk is specific
+                  to Sovereign Forge's core differentiating capability.
+
+Probability:      2 — Unlikely (explicit preset activation; test
+                  coverage validates lens behavior)
+Impact:           4 — Major (user with ADHD receives Autism-formatted
+                  response or vice versa; accessibility failure;
+                  ADA compliance risk)
+Risk Score:       8 [YELLOW]
+
+DESCRIPTION:
+  The CognitiveOrchestrator routes each response through one of three
+  cognitive lens transformers (ADHD, Autism, Dyslexia). Lens selection
+  can occur via:
+    Mode A: Explicit preset activation (user selects lens)
+    Mode B: Automatic classification (Phase 5 middle layer)
+
+  A misclassification in Mode B could result in:
+    - ADHD user receiving Autism-formatted response: Response is
+      overly structured and dense; ADHD user loses attention mid-
+      response, missing critical information.
+    - Autism user receiving ADHD-formatted response: Response is
+      incomplete and assumes implied context; Autism user is confused
+      by missing explicit information.
+    - Dyslexia user receiving ADHD-formatted response: Action-oriented
+      chunking without spatial formatting; visual processing increased.
+
+  Beyond user experience impact, misclassification constitutes an
+  ADA compliance failure — the platform fails to provide the
+  reasonable accommodation it advertises.
+
+MITIGATION CONTROLS:
+  CONTROL 1: Explicit Preset Activation (Mode A)
+    Effect:    User explicitly selects ADHD, Autism, or Dyslexia
+               lens. No automatic classification risk.
+               Mode A is the default and recommended mode.
+
+  CONTROL 2: Test Coverage
+    Effect:    test_adhd_lens.py, test_autism_lens.py,
+               test_dyslexia_lens.py validate lens behavior per CI.
+               Any regression in lens transformation is caught
+               before merge.
+
+  CONTROL 3: GET /api/cog/status Monitoring
+    Effect:    Active lens is visible in orchestrator status.
+               Operations team can verify correct lens is active.
+
+  CONTROL 4: User-Visible Lens Indicator
+    Effect:    (Phase 5 enhancement) Dashboard shows active lens
+               so users can confirm correct lens is applied.
+
+RESIDUAL RISK:    Probability 1, Impact 4, Score 4 [GREEN]
+RISK OWNER:       Lead Engineer + Compliance Manager
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (explicit preset activation primary mode)
+----------------------------------------------------------------------
+
+
+8. RISK-005: COSMOS DB FAILURE
+----------------------------------------------------------------------
+Risk ID:          RISK-005
+Risk Name:        Cosmos DB Failure
+Category:         Infrastructure / Data Persistence
+Unique to SF:     No (shared with other Cosmos DB platforms)
+
+Probability:      2 — Unlikely (Azure Cosmos DB is highly available;
+                  99.999% SLA for multi-region deployments)
+Impact:           4 — Major (loss of conversation history, glyph seeds,
+                  and cognitive profiles; AI context degraded)
+Risk Score:       8 [YELLOW]
+
+DESCRIPTION:
+  Azure Cosmos DB is the primary persistence layer for Sovereign Forge.
+  A Cosmos DB failure (regional outage, network partition, or
+  configuration error) would prevent:
+    - Conversation history persistence (all context is lost)
+    - Glyph seed retrieval (glyph processing degrades)
+    - Cognitive profile persistence (lens preferences reset)
+    - Memory zone persistence (Active/Pattern/Crystal data lost)
+
+TRIGGER CONDITIONS:
+  - Cosmos DB endpoint returns HTTP 503 or connection timeout
+  - Azure regional outage affecting the Cosmos DB region
+  - Cosmos DB throughput (RU/s) quota exceeded (HTTP 429)
+  - Misconfigured access control after rotation
+
+MITIGATION CONTROLS:
+  CONTROL 1: Mock Repository Fallback (cosmos_repo.py)
+    Effect:    The cosmos_repo.py contains both production Cosmos DB
+               implementation and in-memory mock repository.
+               On connection failure, the platform can fall back to
+               mock mode for in-session persistence.
+    Limitation: In-memory data is lost on process restart.
+
+  CONTROL 2: Azure Cosmos DB Multi-Region (Phase 4)
+    Effect:    Phase 4 multi-tenant architecture includes Cosmos DB
+               geo-redundancy for higher availability.
+    Status:    Planned (Phase 4).
+
+  CONTROL 3: scripts/init_cosmos.py
+    Effect:    Database can be re-bootstrapped from data/seed.json
+               after recovery.
+
+RESIDUAL RISK:    Probability 2, Impact 2, Score 4 [GREEN]
+RISK OWNER:       Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (mock fallback operational)
+----------------------------------------------------------------------
+
+
+9. RISK-006: MEMORY ZONE DRIFT
+----------------------------------------------------------------------
+Risk ID:          RISK-006
+Risk Name:        Memory Zone Drift
+Category:         AI Risk / Cognitive Architecture Accuracy
+Unique to SF:     YES — UNIQUE TO SOVEREIGN FORGE
+                  The three-zone memory system (Active/Pattern/Crystal)
+                  and entropy-based zone classification are unique
+                  to Sovereign Forge. No other project has this
+                  architecture.
+
+Probability:      2 — Unlikely (23/23 zone tests passing; entropy
+                  algorithm validated)
+Impact:           3 — Moderate (AI responses include incorrect
+                  context weighting; quality degrades over time)
+Risk Score:       6 [YELLOW]
+
+DESCRIPTION:
+  Memory Zone Drift occurs when the entropy calculation algorithm
+  begins misclassifying memory items over time. Items that should
+  be in the Active zone (HIGH entropy, current context) drift into
+  Crystal zone (LOW entropy, long-term memory), causing:
+    - Current working context items are treated as long-term knowledge
+    - AI responses lack awareness of recent user activity
+    - Response quality degrades gradually (hard to detect)
+
+  Drift can occur due to:
+    - Entropy threshold miscalibration (thresholds set incorrectly
+      for actual usage patterns)
+    - Clock drift affecting recency calculations
+    - Access pattern changes (user behavior changes but thresholds
+      do not adapt)
+    - Accumulated state corruption in memory store
+
+  The "drift" is insidious because it is gradual — quality degrades
+  over time rather than failing suddenly, making it harder to detect.
+
+MITIGATION CONTROLS:
+  CONTROL 1: 23/23 Zone Tests (test_memory_zones.py)
+    Effect:    All zone classification scenarios are validated per CI.
+               Entropy calculation algorithm correctness is verified.
+               Any regression in zone classification causes CI to fail.
+
+  CONTROL 2: Entropy Algorithm Validation
+    Effect:    The entropy calculation is deterministic and tested.
+               Given the same inputs, the same zone is always assigned.
+
+  CONTROL 3: GET /api/cog/memory Monitoring
+    Effect:    Zone contents are visible via API. Operations team
+               can monitor for anomalous zone distribution
+               (e.g., all items in Crystal when Active expected).
+
+  CONTROL 4: DELETE /api/cog/memory (Memory Reset)
+    Effect:    If drift is detected, memory can be cleared and
+               rebuilt from fresh interactions.
+
+RESIDUAL RISK:    Probability 1, Impact 3, Score 3 [GREEN]
+RISK OWNER:       Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (zone tests locked; entropy validated)
+----------------------------------------------------------------------
+
+
+10. RISK-007: GLYPH SEED INJECTION
+----------------------------------------------------------------------
+Risk ID:          RISK-007
+Risk Name:        Glyph Seed Injection
+Category:         Security / Input Validation
+Unique to SF:     YES — UNIQUE TO SOVEREIGN FORGE
+                  Glyph sequences are a unique input type specific
+                  to Sovereign Forge's symbolic processing architecture.
+                  No other project in the portfolio has a glyph system.
+
+Probability:      2 — Unlikely (validation endpoint available;
+                  input sanitization in glyph_processor.py)
+Impact:           3 — Moderate (adversarial glyph sequence could
+                  manipulate AI routing; fuzzy matcher produces
+                  unexpected output)
+Risk Score:       6 [YELLOW]
+
+DESCRIPTION:
+  Glyph sequences (e.g., "APEX->CORE->EMIT") are symbolic input
+  that drives cognitive routing in Sovereign Forge. An adversarial
+  glyph sequence could potentially:
+    - Force routing to unintended cognitive zones
+    - Cause the fuzzy matcher to match an adversarial token to
+      a valid glyph with different routing properties
+    - Inject sequences that cause the glyph processor to produce
+      errors or unexpected behavior
+    - Bypass validation by exploiting the fuzzy matching threshold
+      (adversarial input scored just above rejection threshold)
+
+  This is analogous to SQL injection but for the glyph processing
+  layer: instead of injecting SQL commands, the attacker injects
+  glyph sequences designed to manipulate cognitive routing.
+
+MITIGATION CONTROLS:
+  CONTROL 1: POST /api/glyphs/validate Endpoint
+    Effect:    All glyph sequences must be validated before
+               processing. Validation checks: token membership,
+               sequence length, injection characters, route validity.
+
+  CONTROL 2: Input Sanitization (glyph_processor.py)
+    Effect:    Control characters and injection characters are
+               stripped before processing. Uppercase normalization
+               eliminates case-based bypass attempts.
+
+  CONTROL 3: Fuzzy Match Score Threshold
+    Effect:    Fuzzy matches below the configured threshold are
+               rejected. The threshold is calibrated for precision
+               over recall (see KPI-007).
+
+  CONTROL 4: Pydantic Schema Validation
+    Effect:    API schema validates glyph sequence structure before
+               glyph_processor.py receives the input.
+
+  CONTROL 5: tests/test_glyph_processor.py
+    Effect:    Injection scenarios are tested in the CI pipeline.
+               Regression in input validation is caught before merge.
+
+RESIDUAL RISK:    Probability 1, Impact 3, Score 3 [GREEN]
+RISK OWNER:       Security Officer + Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (validation endpoint + sanitization)
+----------------------------------------------------------------------
+
+
+11. RISK-008: COGNITIVE PROFILE DATA EXPOSURE
+----------------------------------------------------------------------
+Risk ID:          RISK-008
+Risk Name:        Cognitive Profile Data Exposure
+Category:         Privacy / Security / Compliance
+Unique to SF:     YES — UNIQUE TO SOVEREIGN FORGE
+                  Cognitive profile data (lens preference revealing
+                  neurodivergent status) is a sensitive personal
+                  characteristic unique to the Sovereign Forge lens
+                  system. This privacy risk does not exist in other
+                  projects.
+
+Probability:      2 — Unlikely (X-API-Key guard; Cosmos encryption;
+                  no lens data in logs)
+Impact:           5 — Critical (exposure of neurodivergent status
+                  is a privacy violation; ADA compliance implication;
+                  potential discrimination risk for users)
+Risk Score:       10 [ORANGE]
+
+DESCRIPTION:
+  Sovereign Forge stores cognitive profile data in Azure Cosmos DB,
+  including the user's selected cognitive lens (ADHD, Autism, or
+  Dyslexia). This data is sensitive because:
+    - It reveals the user's neurodivergent status or self-identification
+    - Neurodivergent status is a protected characteristic under ADA
+    - Unauthorized disclosure could enable discrimination
+    - Users may not want their cognitive profile known to unauthorized
+      parties
+
+  Exposure vectors:
+    Vector 1: Unauthorized API access (no valid X-API-Key)
+    Vector 2: Cosmos DB access control misconfiguration
+    Vector 3: Lens data appearing in application logs
+    Vector 4: Lens data appearing in error responses
+    Vector 5: Cosmos DB connection string exposure (RISK-002 chain)
+
+MITIGATION CONTROLS:
+  CONTROL 1: X-API-Key Authentication
+    Effect:    All cognitive profile endpoints require valid API key.
+               Unauthenticated access returns HTTP 401.
+
+  CONTROL 2: Azure Cosmos DB Encryption at Rest
+    Effect:    All data in Cosmos DB is encrypted at rest using
+               AES-256. Even physical access to Azure storage
+               does not expose data.
+
+  CONTROL 3: No Lens Data in Application Logs
+    Effect:    Logging configuration explicitly excludes cognitive
+               lens type from log output. Log entries use neutral
+               identifiers (lens_id) not lens names.
+
+  CONTROL 4: No Lens Data in Error Responses
+    Effect:    error_handler.py returns structured errors without
+               including the active lens name.
+
+  CONTROL 5: DELETE /api/cog/memory
+    Effect:    Users (or admins) can purge cognitive profile data
+               on request, enabling right-to-erasure compliance.
+
+RESIDUAL RISK:    Probability 1, Impact 5, Score 5 [GREEN]
+RISK OWNER:       Security Officer + Compliance Manager
+REVIEW DATE:      2026-05-08
+STATUS:           MITIGATED (controls operational)
+ESCALATION NOTE:  If Phase 4 introduces EU users, GDPR data subject
+                  rights (access, erasure, portability) must be
+                  formally implemented before EU deployment.
+----------------------------------------------------------------------
+
+
+12. RISK-009: RELEASE PIPELINE FAILURE
+----------------------------------------------------------------------
+Risk ID:          RISK-009
+Risk Name:        Release Pipeline Failure
+Category:         DevOps / Delivery
+Unique to SF:     YES — UNIQUE TO SOVEREIGN FORGE
+                  Only Sovereign Forge has an automated release pipeline
+                  (release.yml). A pipeline failure is a risk that
+                  only exists for projects with automated release
+                  infrastructure.
+
+Probability:      2 — Unlikely (release.yml is tested; GitHub Actions
+                  infrastructure is highly reliable)
+Impact:           3 — Moderate (release is delayed; manual fallback
+                  is available; users are not immediately impacted)
+Risk Score:       6 [YELLOW]
+
+DESCRIPTION:
+  The release.yml GitHub Actions workflow automates the creation of
+  GitHub Releases and artifact publishing. If release.yml fails,
+  the release cannot be published through the automated pipeline.
+
+  Failure modes:
+    Failure 1: Build step fails (dependency unavailable, compile error)
+    Failure 2: Artifact upload to GitHub Release fails (network, quota)
+    Failure 3: GitHub API rate limit hit during release creation
+    Failure 4: Docker build fails (base image unavailable)
+    Failure 5: Secrets expired or rotated without updating GitHub Secrets
+
+  Impact: Release cadence (KPI-008) is affected. If multiple sprints
+  pass without a successful release, Phase 4 deployment to additional
+  tenants is delayed.
+
+MITIGATION CONTROLS:
+  CONTROL 1: Manual Deployment Fallback
+    Effect:    Docker containerization (Dockerfile + docker-compose.yml)
+               enables manual deployment to Azure App Service if
+               release.yml fails.
+               Process: docker build + docker push + az webapp update
+
+  CONTROL 2: Makefile Automation
+    Effect:    Makefile targets abstract Docker build and push
+               commands. Manual deployment is not error-prone.
+
+  CONTROL 3: Release Pipeline Monitoring
+    Effect:    GitHub Actions sends failure notifications (email/
+               GitHub notification) when release.yml fails.
+               Operations team is notified within minutes.
+
+  CONTROL 4: Separate CI from Release
+    Effect:    ci.yml and release.yml are separate pipelines.
+               A release.yml failure does not affect the primary
+               quality gate (ci.yml). Code quality is not
+               compromised by a release failure.
+
+RESIDUAL RISK:    Probability 2, Impact 2, Score 4 [GREEN]
+RISK OWNER:       Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           ACCEPTED with mitigation (manual fallback)
+----------------------------------------------------------------------
+
+
+13. RISK-010: AZURE PRODUCTION ACTIVATION DELAY
+----------------------------------------------------------------------
+Risk ID:          RISK-010
+Risk Name:        Azure Production Activation Delay
+Category:         Operational / Cloud Configuration
+Unique to SF:     PARTIALLY UNIQUE
+                  The mock mode architecture (MOCK_AI=true) is unique
+                  to Sovereign Forge. The Azure activation delay risk
+                  exists because the platform has a mock mode that
+                  allows complete local validation before live Azure
+                  credentials are available.
+
+Probability:      3 — Possible (cloud configuration involves
+                  procurement, access management, and environment
+                  setup that can be delayed by organizational
+                  processes)
+Impact:           3 — Moderate (VR Studios pilot runs in mock mode
+                  rather than live AOAI; AI quality is lower;
+                  KPI-002 cannot be measured with live scoring)
+Risk Score:       9 [YELLOW]
+
+DESCRIPTION:
+  Sovereign Forge requires Azure OpenAI production keys to operate
+  in live AI mode. If the Azure configuration (key provisioning,
+  AOAI_ENDPOINT setup, Cosmos DB connection) is delayed, the platform
+  operates in mock mode (MOCK_AI=true) for longer than planned.
+
+  Impact of extended mock mode operation:
+    - AI responses are structured mock data, not true AI generation
+    - Azure AI Evaluation SDK cannot produce meaningful scores
+      (mock responses are deterministic, not AI-generated)
+    - KPI-002 (Azure AI Evaluation Score) remains PENDING
+    - VR Studios pilot value is diminished
+    - Phase 4 multi-tenant onboarding is blocked
+
+  Current status: Phase 3 (VR Studios pilot) completed with Azure
+  credentials injected. eval_results.json has not been populated
+  with live scoring data (Phase 4 deliverable).
+
+TRIGGER CONDITIONS:
+  - Azure OpenAI keys not provisioned for new Phase 4 tenants
+  - AOAI_ENDPOINT region capacity unavailable
+  - Azure subscription quota limits hit for OpenAI resources
+  - Access management delays (AAD permissions not granted)
+
+MITIGATION CONTROLS:
+  CONTROL 1: Mock Mode Completeness
+    Effect:    MOCK_AI=true provides full platform functionality.
+               All development, testing, and CI can proceed without
+               live Azure credentials. Activation delay does not
+               block platform development or VR Studios demo mode.
+
+  CONTROL 2: Local Validation Complete
+    Effect:    All 50 test cases (phases 1-3) have been validated
+               in mock mode. The platform is ready for live Azure
+               activation whenever credentials are available.
+
+  CONTROL 3: Azure Provisioning Documentation
+    Effect:    docs/env_setup.md documents all required environment
+               variables and their sources. Provisioning engineer
+               can configure the environment without developer
+               assistance.
+
+  CONTROL 4: scripts/preflight_check.py
+    Effect:    Validates all environment variables and connectivity
+               before deployment. Activation can be confirmed
+               confidently before go-live.
+
+RESIDUAL RISK:    Probability 3, Impact 2, Score 6 [YELLOW]
+RISK OWNER:       Pilot Engagement Lead + Lead Engineer
+REVIEW DATE:      2026-05-08
+STATUS:           MONITORED (mock mode operational; live activation
+                  targeted for Phase 4 sprint 1)
+
+PHASE 4 ACTION ITEMS:
+  1. Provision Azure OpenAI keys for Phase 4 multi-tenant deployment
+  2. Run evaluation/run_evaluation.py with live Azure credentials
+  3. Verify KPI-002 composite score > 4.2/5.0
+  4. Populate eval_results.json with live scoring data
+  5. Update this risk register to RESOLVED once live scoring confirmed
+----------------------------------------------------------------------
+
+
+14. RISK REVIEW SCHEDULE
+----------------------------------------------------------------------
+SPRINT REVIEW (bi-weekly):
+  All 10 risks reviewed for:
+    - Any change in probability (P) since last review
+    - Any change in impact (I) since last review
+    - Status of mitigation controls (still operational?)
+    - Any new materialization events
+    - Any new risks to add
+
+PHASE GATE REVIEW:
+  Full risk register audit at each SDLC phase gate
+  Executive notification required for any new RED-tier risks
+  Compliance officer reviews RISK-004 and RISK-008 (ADA/privacy)
+
+TRIGGER REVIEWS (immediate upon any materialization):
+  RISK-001: If Azure OpenAI returns HTTP 503 for > 5 minutes
+  RISK-002: If any credential is discovered in source code or logs
+  RISK-003: If Dependabot reports a critical vulnerability
+  RISK-004: If a user reports receiving wrong-format response
+  RISK-008: If any unauthorized access to Cosmos DB is detected
+
+RISK REGISTER UPDATE PROCESS:
+  1. Owner identifies change in risk parameters
+  2. Owner updates this document (new version: v002+)
+  3. Platform Architect reviews and approves update
+  4. Distribution list notified of risk register update
+  5. Change logged in Document Control section
+----------------------------------------------------------------------
+
+
+15. DOCUMENT CONTROL
+----------------------------------------------------------------------
+Document ID:      SOVEREIGN-RISK-REGISTER-001
+Version:          v001
+Created:          2026-04-24
+Author:           Engineering Office, Sovereign Forge Program
+Owner:            Platform Architect
+Review Authority: Security Officer + Compliance Manager
+Distribution:     Engineering, Security, Compliance, Executive
+
+Next Review:      2026-05-08
+
+Change Log:
+  v001 | 2026-04-24 | Initial creation. 10 risks identified and
+       |            | scored. 4 risks unique to Sovereign Forge's
+       |            | CI/CD pipeline documented (RISK-002, RISK-003,
+       |            | RISK-009) and 3 unique to cognitive lens/glyph
+       |            | architecture (RISK-004, RISK-006, RISK-007,
+       |            | RISK-008). All residual risks at GREEN or YELLOW.
+       |            | RISK-001 is the only RED-tier risk;
+       |            | mock fallback reduces residual to YELLOW.
+----------------------------------------------------------------------
+
+
+================================================================================
+END OF DOCUMENT: SOVEREIGN-RISK-REGISTER-001_2026-04-24_v001.txt
+Classification: Enterprise Internal — Controlled Distribution
+Total Sections: 15 | Approx. Lines: 390+
+================================================================================

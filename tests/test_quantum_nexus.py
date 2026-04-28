@@ -10,7 +10,7 @@ SAMPLE_BLUEPRINT = {
         "rc_map": {
             "A1": {"r": 1, "c": 1, "node": 1, "label": "Fluent Python"},
             "B1": {"r": 1, "c": 2, "node": 1, "label": "Deep Learning with Python"},
-            "H1": {"r": 2, "c": 2, "node": 2, "label": "Glyph Registry (1)"},
+            "H1": {"r": 2, "c": 2, "node": 2, "label": "Symbol Registry (1)"},
             "O1": {"r": 3, "c": 3, "node": 3, "label": "GitHub Essentials"},
             "P1": {"r": 3, "c": 4, "node": 3, "label": "Prompt Engineering Workshop"},
             "V1": {"r": 4, "c": 4, "node": 4, "label": "AI Mind Map Generation"},

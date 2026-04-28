@@ -92,7 +92,7 @@ class Suggestions(BaseModel):
     suggestions: list[dict]
 
 
-# --- Sync / Glyphic protocol ---
+# --- Sync / Symbol validation protocol ---
 
 
 class SyncUpdateRequest(BaseModel):
@@ -104,7 +104,7 @@ class AgentSnapshot(BaseModel):
     agent: str
     timestamp: float
     payload: Dict[str, Any]
-    glyphic_signature: tuple[int, int, int, int, int]
+    content_signature: tuple[int, int, int, int, int]
 
 
 class SyncSnapshot(BaseModel):
@@ -116,17 +116,17 @@ class SyncSnapshot(BaseModel):
     events: list[Dict[str, Any]]
 
 
-class GlyphValidateRequest(BaseModel):
+class SymbolValidateRequest(BaseModel):
     sequence: list[str]
 
 
-class GlyphValidateResponse(BaseModel):
+class SymbolValidateResponse(BaseModel):
     valid: bool
     reason: str
 
 
 class BootStep(BaseModel):
-    glyph: str
+    symbol: str
     name: str
     index: int
 

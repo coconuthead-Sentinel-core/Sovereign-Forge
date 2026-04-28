@@ -32,7 +32,7 @@ def test_memory_zone_enum_values():
     """MemoryZone enum has correct values."""
     assert MemoryZone.ACTIVE.value == "active"
     assert MemoryZone.PATTERN.value == "pattern"
-    assert MemoryZone.CRYSTALLIZED.value == "crystal"
+    assert MemoryZone.ARCHIVED.value == "archived"
 
 
 def test_cognitive_lens_enum_values():
@@ -59,12 +59,12 @@ def test_zoned_note_custom_zone():
     note = ZonedNote(
         text="Stable pattern",
         tag="memory",
-        zone=MemoryZone.CRYSTALLIZED,
+        zone=MemoryZone.ARCHIVED,
         entropy=0.15,
         lens_applied=CognitiveLens.AUTISM_PRECISION,
     )
     
-    assert note.zone == MemoryZone.CRYSTALLIZED
+    assert note.zone == MemoryZone.ARCHIVED
     assert note.entropy == 0.15
     assert note.lens_applied == CognitiveLens.AUTISM_PRECISION
 
@@ -132,7 +132,7 @@ def test_zone_metrics_creation():
     
     assert metrics.active_count == 0
     assert metrics.pattern_count == 0
-    assert metrics.crystal_count == 0
+    assert metrics.archived_count == 0
     assert metrics.avg_entropy == 0.0
     assert metrics.last_transition is None
 
@@ -142,7 +142,7 @@ def test_zone_metrics_serializes():
     metrics = ZoneMetrics(
         active_count=5,
         pattern_count=10,
-        crystal_count=20,
+        archived_count=20,
         avg_entropy=0.45,
         last_transition="active→pattern",
     )
@@ -151,7 +151,7 @@ def test_zone_metrics_serializes():
     
     assert data["active_count"] == 5
     assert data["pattern_count"] == 10
-    assert data["crystal_count"] == 20
+    assert data["archived_count"] == 20
     assert data["avg_entropy"] == 0.45
     assert data["last_transition"] == "active→pattern"
 
@@ -188,9 +188,9 @@ def test_classify_zone_mid():
 
 
 def test_classify_zone_low():
-    """Low entropy routes to CRYSTALLIZED."""
-    assert classify_zone(0.2) == MemoryZone.CRYSTALLIZED
-    assert classify_zone(0.3) == MemoryZone.CRYSTALLIZED
+    """Low entropy routes to ARCHIVED."""
+    assert classify_zone(0.2) == MemoryZone.ARCHIVED
+    assert classify_zone(0.3) == MemoryZone.ARCHIVED
 
 
 # --- ThreeZoneMemory Manager Tests ---
@@ -202,7 +202,7 @@ def test_three_zone_memory_init():
     
     assert metrics.active_count == 0
     assert metrics.pattern_count == 0
-    assert metrics.crystal_count == 0
+    assert metrics.archived_count == 0
 
 
 def test_three_zone_memory_route():
@@ -216,7 +216,7 @@ def test_three_zone_memory_route():
     
     # Low entropy text (repeated)
     zone, entropy = mem.route_to_zone("yes yes yes yes")
-    assert zone == MemoryZone.CRYSTALLIZED
+    assert zone == MemoryZone.ARCHIVED
     assert entropy == 0.25
 
 
@@ -242,13 +242,13 @@ def test_three_zone_memory_metrics_update():
     
     # Route some content
     mem.route_to_zone("unique words here")  # ACTIVE
-    mem.route_to_zone("same same same same")  # CRYSTALLIZED
+    mem.route_to_zone("same same same same")  # ARCHIVED
     mem.route_to_zone("mixed mixed unique")  # PATTERN
     
     metrics = mem.get_metrics()
     
     assert metrics.active_count == 1
-    assert metrics.crystal_count == 1
+    assert metrics.archived_count == 1
     assert metrics.pattern_count == 1
 
 
@@ -258,15 +258,15 @@ def test_three_zone_memory_distribution():
     
     # Add content to different zones
     mem.route_to_zone("one two three four five")  # ACTIVE (all unique)
-    mem.route_to_zone("same same same same")  # CRYSTALLIZED (low entropy)
+    mem.route_to_zone("same same same same")  # ARCHIVED (low entropy)
     
     dist = mem.get_zone_distribution()
     
     assert "active" in dist
-    assert "crystal" in dist
+    assert "archived" in dist
     # Both zones should have entries
     assert dist["active"] > 0
-    assert dist["crystal"] > 0
+    assert dist["archived"] > 0
 
 
 def test_three_zone_memory_reset():
@@ -279,7 +279,7 @@ def test_three_zone_memory_reset():
     metrics = mem.get_metrics()
     assert metrics.active_count == 0
     assert metrics.pattern_count == 0
-    assert metrics.crystal_count == 0
+    assert metrics.archived_count == 0
 
 
 def test_get_memory_manager_singleton():

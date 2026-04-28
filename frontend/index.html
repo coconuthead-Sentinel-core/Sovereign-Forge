@@ -59,14 +59,14 @@
         <pre id="prime"></pre>
       </div>
       <div class="card">
-        <h2>Metatron Suggestions</h2>
+        <h2>Rule Suggestions</h2>
         <button id="suggBtn">Get /api/cog/suggest</button>
         <pre id="sugg"></pre>
       </div>
     </div>
 
     <div class="card">
-      <h2>Tri-Node Sync & Glyphs</h2>
+      <h2>Tri-Node Sync & Symbols</h2>
       <div class="row">
         <div>
           <label>Agent</label>
@@ -76,14 +76,14 @@
           <div style="margin-top:.5rem;"><button id="syncUpdate">POST /api/sync/update</button></div>
         </div>
         <div>
-          <label>Glyph Sequence (JSON array)</label>
+          <label>Symbol Sequence (JSON array)</label>
           <textarea id="glyphSeq" rows="6">["structure","logic","emotion","transform","unity"]</textarea>
-          <div style="margin-top:.5rem;"><button id="validateGlyphs">POST /api/glyphs/validate</button></div>
+          <div style="margin-top:.5rem;"><button id="validateGlyphs">POST /api/symbols/validate</button></div>
         </div>
       </div>
       <div style="margin-top:.5rem;">
         <button id="syncSnap">GET /api/sync/snapshot</button>
-        <button id="bootSeq" style="margin-left:.5rem;">GET /api/glyphs/boot</button>
+        <button id="bootSeq" style="margin-left:.5rem;">GET /api/symbols/boot</button>
         <button id="wsConnect" style="margin-left:.5rem;">Connect WS</button>
       </div>
       <pre id="syncOut"></pre>
@@ -101,12 +101,12 @@
     </div>
 
     <div class="card">
-      <h2>Sentinel Profile (Zero-State Control)</h2>
+      <h2>Sentinel Profile (Default Initialization)</h2>
       <div style="margin-bottom: .5rem;">
         <button id="loadProfile">GET /api/profile_get</button>
         <button id="reinitProfile" style="margin-left:.5rem; background:#b83232;">POST /api/profile_initialize</button>
       </div>
-      <small>Reinitialize requires confirmation: "Confirm Zero-State Reset"</small>
+      <small>Reinitialize requires confirmation: "Confirm Default Reset"</small>
       <pre id="profileOut"></pre>
     </div>
 

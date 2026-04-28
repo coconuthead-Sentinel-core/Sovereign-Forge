@@ -1,0 +1,29 @@
+{
+  "shapes": {
+    "APEX": {
+      "topic": "initiation",
+      "seeds": ["apex", "ignite", "ai_infer", "start", "init", "query"],
+      "rules": {"apex": "tag:initiation"}
+    },
+    "CORE": {
+      "topic": "process",
+      "seeds": ["core", "resolve", "process", "logic", "reason"],
+      "rules": {"process": "tag:process.core"}
+    },
+    "EMIT": {
+      "topic": "action",
+      "seeds": ["emit", "launch", "trigger", "output", "send"],
+      "rules": {"launch": "tag:action.emit"}
+    },
+    "ROOT": {
+      "topic": "ethics",
+      "seeds": ["root", "link", "thread", "memory", "ethics", "bind"],
+      "rules": {"ethics": "tag:ethics.guard"}
+    },
+    "CUBE": {
+      "topic": "stability",
+      "seeds": ["cube", "resonate", "stabilize", "harmonize", "ground"],
+      "rules": {"cube": "tag:stability.struct"}
+    }
+  }
+}

@@ -15,7 +15,7 @@ if os.name == 'nt':
 
 # Logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("sentinel-middleware")
+logger = logging.getLogger("sovereign-forge")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,7 +38,16 @@ async def lifespan(app: FastAPI):
     # Cleanup on shutdown
     await CosmosDBRepository.close()
 
-app = FastAPI(title="Neurodivergent AI Middleware")
+app = FastAPI(
+    title="Sovereign Forge — Multi-Platform Orchestration Gateway",
+    description=(
+        "Unified gateway that routes requests to Quantum Nexus Forge and "
+        "Sentinel of Sentinel's Forge in parallel, then merges their outputs "
+        "into a single coherent response."
+    ),
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 # Add CORS
 app.add_middleware(
@@ -64,7 +73,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=9000,
         timeout_keep_alive=75,
         log_level="info"
     )
@@ -73,7 +82,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8000,
+        port=9000,
         timeout_keep_alive=75,
         log_level="info"
     )

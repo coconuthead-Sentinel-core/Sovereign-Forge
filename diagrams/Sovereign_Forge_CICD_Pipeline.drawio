@@ -1,0 +1,38 @@
+<mxfile host="app.diagrams.net" version="29.6.1" type="device">
+  <diagram id="Sovereign Forge CICD Pipeline" name="Sovereign Forge CICD Pipeline">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="Sovereign Forge — GitHub CI/CD to Azure Deployment" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="150" y="20" width="980" height="40" as="geometry" /></mxCell>
+        <mxCell id="gp" value="Git Push
+git push origin main" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292e;fontColor=#ffffff;strokeColor=#586069;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="80" y="150" width="160" height="70" as="geometry" /></mxCell>
+        <mxCell id="ci" value="GitHub Actions
+ci.yml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292e;fontColor=#ffffff;strokeColor=#586069;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="290" y="150" width="160" height="70" as="geometry" /></mxCell>
+        <mxCell id="ts" value="pytest Suite
+156 Tests Passing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="500" y="130" width="160" height="110" as="geometry" /></mxCell>
+        <mxCell id="dk" value="Docker Build
+(Dockerfile)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e2e;fontColor=#cdd6f4;strokeColor=#89b4fa;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="720" y="150" width="160" height="70" as="geometry" /></mxCell>
+        <mxCell id="cr" value="Azure Container
+Registry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;fontColor=#ffffff;strokeColor=#005a9e;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="940" y="150" width="160" height="70" as="geometry" /></mxCell>
+        <mxCell id="as" value="Azure App Service
+Production Deployment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;fontColor=#ffffff;strokeColor=#005a9e;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="940" y="290" width="160" height="70" as="geometry" /></mxCell>
+        <mxCell id="re" value="release.yml
+Version Tags → Release" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#24292e;fontColor=#ffffff;strokeColor=#586069;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="290" y="290" width="160" height="70" as="geometry" /></mxCell>
+        <mxCell id="sc" value="cognitive_orchestrator.py
+Three-Zone Memory · Lenses" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="600" y="290" width="280" height="70" as="geometry" /></mxCell>
+        <mxCell id="cdb" value="Azure Cosmos DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#0078D4;fontColor=#ffffff;strokeColor=#005a9e;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="940" y="430" width="160" height="60" as="geometry" /></mxCell>
+        <mxCell id="oai" value="Azure OpenAI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;fontColor=#ffffff;strokeColor=#005a9e;fontSize=11;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="720" y="430" width="180" height="60" as="geometry" /></mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="gp" target="ci" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ci" target="ts" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="ts" target="dk" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="dk" target="cr" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="cr" target="as" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="re" target="as" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="as" target="sc" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="as" target="cdb" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" source="as" target="oai" parent="1"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

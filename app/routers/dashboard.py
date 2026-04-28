@@ -53,7 +53,7 @@ async def api_metrics() -> Dict[str, Any]:
             "memory_zones": {
                 "active": 0.85,        # >0.7 entropy
                 "emergent": 0.45,      # 0.3-0.7 entropy
-                "crystallized": 0.15,  # <0.3 entropy
+                "archived": 0.15,      # <0.3 entropy
             },
             "cognitive_lenses": {
                 "adhd": {"efficiency": 0.92, "queries": 45},

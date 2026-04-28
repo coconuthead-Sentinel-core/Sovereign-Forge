@@ -77,7 +77,7 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/notes/upsert" -Bo
 ---
 
 ## 4. Cognitive Process
-Run raw data through the cognitive pipeline (Shannon Prime / Metatron).
+Run raw data through the cognitive pipeline (EntropyAnalyzer / PatternSuggestion).
 
 **Curl:**
 ```bash

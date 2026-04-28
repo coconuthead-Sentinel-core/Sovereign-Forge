@@ -9,7 +9,7 @@ from quantum_nexus_forge_v5_2_enhanced import QuantumNexusForge
 from sentinel_cognition import SentinelCognitionGraph
 from quantum_nexus_forge_v5_2_enhanced import QuantumAtom
 from sentinel_profile import initialize_sentinel, default_profile
-from sentinel_sync import sync_coordinator, _glyphic_signature
+from sentinel_sync import sync_coordinator, _content_signature
 from .eventbus import bus
 from .storage import JSONStore
 from .llm import get_llm, LLMError
@@ -47,7 +47,7 @@ class QNFService:
         self._seeds: set[str] = set()
         self._topic_matrix: Dict[str, Dict[str, int]] = {}
         # Last resonance snapshot
-        self._last_resonance: Dict[str, Any] = {}
+        self._last_coherence_score: Dict[str, Any] = {}
         # Topic alias mapping (seed/keyword -> canonical topic label)
         self._topic_alias: Dict[str, str] = {}
         # --- Triage tuner (SGD scaffold) -----------------------------------
@@ -319,8 +319,8 @@ class QNFService:
                 thread_id = f"thr_{uuid.uuid4().hex[:8]}"
                 self._topic_to_thread[top_topic] = thread_id
                 self._threads[thread_id] = {"id": thread_id, "topic": top_topic, "items": [], "created": time.time(), "updated": time.time()}
-            sig = _glyphic_signature({"text": str(data), "intent": intent, "topics": topics})
-            entry = {"ts": time.time(), "text": str(data), "intent": intent, "confidence": confidence, "sigil": list(sig)}
+            sig = _content_signature({"text": str(data), "intent": intent, "topics": topics})
+            entry = {"ts": time.time(), "text": str(data), "intent": intent, "confidence": confidence, "content_signature": list(sig)}
             thr = self._threads.get(thread_id)
             if thr is not None:
                 items = thr.get("items", [])
@@ -357,8 +357,8 @@ class QNFService:
                     "thread_activity": thread_activity,
                 }
                 score = sum(components.values()) / len(components)
-                self._last_resonance = {"score": score, **components}
-                result.metadata["resonance"] = dict(self._last_resonance)
+                self._last_coherence_score = {"score": score, **components}
+                result.metadata["coherence_score"] = dict(self._last_coherence_score)
             except Exception:
                 pass
         except Exception:
@@ -430,10 +430,10 @@ class QNFService:
             out[topic] = pairs
         return {"matrix": out}
 
-    def resonance_last(self) -> Dict[str, Any]:
-        return dict(self._last_resonance)
+    def coherence_score_last(self) -> Dict[str, Any]:
+        return dict(self._last_coherence_score)
 
-    def glyphs_pack(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+    def symbols_pack(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         shapes = payload.get("shapes") if isinstance(payload, dict) else None
         if not isinstance(shapes, dict):
             shapes = payload if isinstance(payload, dict) else {}
@@ -475,8 +475,8 @@ class QNFService:
             "added": added,
         }
 
-    def glyphs_interpret(self, sequence: str) -> Dict[str, Any]:
-        """Parse a simple glyph/node sequence and suggest a route and topics.
+    def symbols_interpret(self, sequence: str) -> Dict[str, Any]:
+        """Parse a simple symbol/node sequence and suggest a route and topics.
 
         Accepts tokens like "APEX->CORE->EMIT" or emojis "🜂->♾->🚀" and
         returns normalized tokens, any alias topics that match, and a route hint.
@@ -597,7 +597,7 @@ class QNFService:
         return self._cog.prime_metrics()
 
     def cog_suggestions(self, limit: int = 5) -> Dict[str, Any]:
-        return {"suggestions": self._cog.metatron_suggestions(limit=limit)}
+        return {"suggestions": self._cog.generate_rule_suggestions(limit=limit)}
 
     # --- SentinelPrimeSync (tri-node) -------------------------------------
     def sync_update(self, agent: str, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -605,7 +605,7 @@ class QNFService:
         payload = {
             "agent": st.agent,
             "timestamp": st.timestamp,
-            "glyphic_signature": st.glyphic_signature,
+            "content_signature": st.content_signature,
             "sequence_validation": sync_coordinator.validate(sync_coordinator.sequence),
         }
         # Publish event for WebSocket listeners
@@ -705,13 +705,13 @@ class QNFService:
 
     def upgrade_plan(self) -> Dict[str, Any]:
         metrics = self._cog.prime_metrics()
-        suggestions = self._cog.metatron_suggestions(limit=10)
+        suggestions = self._cog.generate_rule_suggestions(limit=10)
         return {"prime": metrics, "suggestions": suggestions}
 
     def upgrade_apply(self) -> Dict[str, Any]:
         # Merge suggestions into rules; later we can add tunables for pools, etc.
         current = self._cog.get_rules()
-        for pair in self._cog.metatron_suggestions(limit=50):
+        for pair in self._cog.generate_rule_suggestions(limit=50):
             current.setdefault(pair["pattern"], pair["tag"])
         self._cog.set_rules(current)
         self._store.save({

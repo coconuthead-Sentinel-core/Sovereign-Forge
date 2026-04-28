@@ -1,9 +1,9 @@
 """Three-Zone Memory Manager for Sentinel Forge.
 
 Manages entropy-based routing of notes between cognitive zones:
-- 🟢 ACTIVE: High entropy (>0.7) - Real-time processing
-- 🟡 PATTERN: Mid entropy (0.3-0.7) - Pattern emergence  
-- 🔴 CRYSTALLIZED: Low entropy (<0.3) - Stable storage
+- ACTIVE: High entropy (>0.7) - Real-time processing
+- PATTERN: Mid entropy (0.3-0.7) - Pattern emergence
+- ARCHIVED: Low entropy (<0.3) - Stable storage
 
 Architecture:
     CognitiveOrchestrator → ThreeZoneMemory → ZonedNote → cosmos_repo
@@ -66,7 +66,7 @@ def classify_zone(entropy: float) -> MemoryZone:
     Thresholds:
     - >0.7: ACTIVE (novel, high-information content)
     - 0.3-0.7: PATTERN (emerging patterns, semi-stable)
-    - <0.3: CRYSTALLIZED (stable, well-known patterns)
+    - <0.3: ARCHIVED (stable, well-known patterns)
     
     Args:
         entropy: Entropy score (0.0-1.0)
@@ -79,7 +79,7 @@ def classify_zone(entropy: float) -> MemoryZone:
     elif entropy > 0.3:
         return MemoryZone.PATTERN
     else:
-        return MemoryZone.CRYSTALLIZED
+        return MemoryZone.ARCHIVED
 
 
 # --- Three-Zone Memory Manager ---
@@ -99,7 +99,7 @@ class ThreeZoneMemory:
     
     # Zone entropy thresholds (configurable)
     ACTIVE_THRESHOLD = 0.7      # >0.7 = active
-    PATTERN_THRESHOLD = 0.3     # >0.3 = pattern, else crystal
+    PATTERN_THRESHOLD = 0.3     # >0.3 = pattern, else archived
     
     def __init__(self) -> None:
         """Initialize ThreeZoneMemory with empty zone counters."""
@@ -108,7 +108,7 @@ class ThreeZoneMemory:
         self._total_items: int = 0
         self._last_transition: Optional[str] = None
         
-        logger.info("🧠 ThreeZoneMemory initialized")
+        logger.info("ThreeZoneMemory initialized")
     
     def route_to_zone(self, text: str) -> tuple[MemoryZone, float]:
         """
@@ -128,7 +128,7 @@ class ThreeZoneMemory:
         self._total_entropy += entropy
         self._total_items += 1
         
-        logger.debug(f"📊 Routed to {zone.value}: entropy={entropy:.3f}")
+        logger.debug(f"Routed to {zone.value}: entropy={entropy:.3f}")
         
         return zone, entropy
     
@@ -176,7 +176,7 @@ class ThreeZoneMemory:
             to_zone: New zone after transition
         """
         self._last_transition = f"{from_zone.value}→{to_zone.value}"
-        logger.info(f"🔄 Zone transition: {self._last_transition}")
+        logger.info(f"Zone transition: {self._last_transition}")
     
     def get_metrics(self) -> ZoneMetrics:
         """
@@ -194,7 +194,7 @@ class ThreeZoneMemory:
         return ZoneMetrics(
             active_count=self._zone_counts[MemoryZone.ACTIVE],
             pattern_count=self._zone_counts[MemoryZone.PATTERN],
-            crystal_count=self._zone_counts[MemoryZone.CRYSTALLIZED],
+            archived_count=self._zone_counts[MemoryZone.ARCHIVED],
             avg_entropy=round(avg_entropy, 3),
             last_transition=self._last_transition,
         )
@@ -219,7 +219,7 @@ class ThreeZoneMemory:
         self._total_entropy = 0.0
         self._total_items = 0
         self._last_transition = None
-        logger.info("🔄 ThreeZoneMemory metrics reset")
+        logger.info("ThreeZoneMemory metrics reset")
 
 
 # --- Singleton Instance (Optional convenience) ---

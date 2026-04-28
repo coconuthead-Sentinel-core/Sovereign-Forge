@@ -12,13 +12,13 @@ class MemoryZone(str, Enum):
     """
     Three-zone memory classification based on entropy thresholds.
     
-    🟢 ACTIVE: High entropy (>0.7) - Real-time processing, novel content
-    🟡 PATTERN: Mid entropy (0.3-0.7) - Pattern emergence, semi-stable
-    🔴 CRYSTALLIZED: Low entropy (<0.3) - Stable storage, well-known patterns
+    ACTIVE: High entropy (>0.7) - Real-time processing, novel content
+    PATTERN: Mid entropy (0.3-0.7) - Pattern emergence, semi-stable
+    ARCHIVED: Low entropy (<0.3) - Stable storage, well-known patterns
     """
-    ACTIVE = "active"           # 🟢 High entropy - real-time
-    PATTERN = "pattern"         # 🟡 Mid entropy - emerging patterns
-    CRYSTALLIZED = "crystal"    # 🔴 Low entropy - stable memory
+    ACTIVE = "active"           # High entropy - real-time
+    PATTERN = "pattern"         # Mid entropy - emerging patterns
+    ARCHIVED = "archived"       # Low entropy - stable memory
 
 
 class CognitiveLens(str, Enum):
@@ -34,8 +34,8 @@ class CognitiveLens(str, Enum):
 
 
 @dataclass
-class GlyphMatch:
-    """Represents a matched glyph pattern."""
+class SymbolMatch:
+    """Represents a matched symbol pattern."""
     shape: str
     topic: str
     confidence: float
@@ -46,7 +46,7 @@ class GlyphMatch:
 @dataclass
 class SymbolicMetadata:
     """Metadata generated from symbolic processing."""
-    matched_glyphs: List[GlyphMatch]
+    matched_symbols: List[SymbolMatch]
     dominant_topic: Optional[str]
     symbolic_tags: Set[str]
     processing_confidence: float
@@ -76,10 +76,10 @@ class ZonedNote(Note):
     A Note enhanced with three-zone memory classification.
     
     Extends Note with:
-    - zone: Which memory zone this note belongs to (active/pattern/crystal)
+    - zone: Which memory zone this note belongs to (active/pattern/archived)
     - entropy: Information entropy score (0.0-1.0)
     - lens_applied: Which cognitive lens was used during processing
-    - symbolic_metadata: Results from glyph pattern matching
+    - symbolic_metadata: Results from symbol pattern matching
     
     Pure domain model: No database aliases. ConfigDict inherited from Entity.
     """
@@ -98,7 +98,7 @@ class ZoneMetrics(BaseModel):
     """
     active_count: int = 0
     pattern_count: int = 0
-    crystal_count: int = 0
+    archived_count: int = 0
     avg_entropy: float = 0.0
     last_transition: Optional[str] = None
     
@@ -109,10 +109,10 @@ class SymbolicMetadata(BaseModel):
     """
     Metadata generated from symbolic processing of text.
     
-    Contains glyph matches, dominant topics, and symbolic tags
+    Contains symbol matches, dominant topics, and symbolic tags
     derived from pattern recognition.
     """
-    matched_glyphs: List[Dict[str, Any]] = Field(default_factory=list)
+    matched_symbols: List[Dict[str, Any]] = Field(default_factory=list)
     dominant_topic: Optional[str] = None
     symbolic_tags: Set[str] = Field(default_factory=set)
     processing_confidence: float = 0.0

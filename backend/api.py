@@ -1,4 +1,4 @@
-from typing import Any, List, Dict, Union
+from typing import Any, List, Dict, Optional, Union
 import logging
 import uuid
 from pathlib import Path
@@ -16,7 +16,7 @@ from .schemas import (
     RebuildRequest, StatusResponse, StressRequest, StressResult,
     JobSubmitResponse, SymbolicRules, SetRulesRequest, MemorySnapshot,
     PrimeMetrics, Suggestions, SyncUpdateRequest, SyncSnapshot,
-    GlyphValidateRequest, GlyphValidateResponse, BootStep, ChatRequest,
+    SymbolValidateRequest, SymbolValidateResponse, BootStep, ChatRequest,
     ChatResponse, EmbeddingsRequest, EmbeddingsResponse,
 )
 from .service import service
@@ -29,6 +29,9 @@ from .core.config import settings
 # NEW: Import Domain, Infrastructure, and Services
 from .domain.models import Note
 from .infrastructure.cosmos_repo import cosmos_repo
+
+# Sovereign Forge Gateway
+from .services.gateway.sovereign_router import get_sovereign_router
 # from .services.chat_service import ChatService
 from .services.cognitive_orchestrator import CognitiveOrchestrator
 from .services.memory_zones import get_memory_manager
@@ -44,7 +47,7 @@ templates = Jinja2Templates(directory="templates")
 # _token_provider = AzureCognitiveTokenProvider()
 
 # if settings.MOCK_AI:
-logging.warning("⚠️  RUNNING IN MOCK AI MODE.")
+logging.warning("RUNNING IN MOCK AI MODE.")
 _adapter = MockOpenAIAdapter()
 # else:
 #     _adapter = AzureOpenAIAdapter(_http_client, _token_provider)
@@ -148,7 +151,7 @@ async def get_metrics() -> Any:
     Phase 2 Enhanced Metrics Endpoint (dep_AllFiles_L2R_to_Z1)
     
     Data Domains:
-    - memory_zones: Three-zone memory system metrics (active/pattern/crystallized)
+    - memory_zones: Three-zone memory system metrics (active/pattern/archived)
     - cognitive_lenses: Cognitive lens usage and statistics
     - system_health: Overall system health and performance
     """
@@ -178,14 +181,14 @@ async def get_metrics() -> Any:
         "memory_zones": {
             "active_count": zone_metrics.active_count,
             "pattern_count": zone_metrics.pattern_count,
-            "crystal_count": zone_metrics.crystal_count,
+            "archived_count": zone_metrics.archived_count,
             "avg_entropy": zone_metrics.avg_entropy,
             "last_transition": zone_metrics.last_transition,
             "distribution": zone_distribution,
             # Zone-specific entropy averages (simulated for visualization)
             "active_avg_entropy": 0.8,
             "pattern_avg_entropy": 0.5,
-            "crystal_avg_entropy": 0.2,
+            "archived_avg_entropy": 0.2,
         },
         
         # Cognitive Lenses Domain
@@ -225,7 +228,7 @@ async def get_metrics() -> Any:
             },
             {
                 "type": "processing",
-                "description": f"Total items processed across all zones: {zone_metrics.active_count + zone_metrics.pattern_count + zone_metrics.crystal_count}",
+                "description": f"Total items processed across all zones: {zone_metrics.active_count + zone_metrics.pattern_count + zone_metrics.archived_count}",
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             },
             {
@@ -382,10 +385,10 @@ async def get_metrics_prom() -> Any:
         lines.append("# TYPE qnf_threads_total gauge")
         lines.append(f"qnf_threads_total {tcount}")
         # Resonance snapshot
-        res = await run_in_threadpool(service.resonance_last)
+        res = await run_in_threadpool(service.coherence_score_last)
         if isinstance(res, dict) and res:
             score = float(res.get('score', 0.0) or 0.0)
-            lines.append("# HELP qnf_resonance_score Last resonance score")
+            lines.append("# HELP qnf_coherence_score Last coherence score")
             lines.append("# TYPE qnf_resonance_score gauge")
             lines.append(f"qnf_resonance_score {score}")
             for key in ("rules","similarity","stability","ethics_ok","thread_activity"):
@@ -670,7 +673,7 @@ async def ops_page() -> str:
     <h3>Config</h3>
     <pre id="config"></pre>
     <h3>Sentinel Profile</h3>
-    <div style="margin:6px 0"><button onclick="reinitProfile()">Reinitialize (Zero-State)</button></div>
+    <div style="margin:6px 0"><button onclick="reinitProfile()">Reinitialize (Default Reset)</button></div>
     <pre id="profile"></pre>
     <h3>Raw metrics</h3>
     <pre id="json"></pre>
@@ -818,15 +821,15 @@ async def cognitive_metrics() -> Any:
     }
 
 
-@router.post("/glyphs/pack")
-async def glyphs_pack(payload: dict = Body(...)) -> Any:
-    return await run_in_threadpool(service.glyphs_pack, payload)
+@router.post("/symbols/pack")
+async def symbols_pack(payload: dict = Body(...)) -> Any:
+    return await run_in_threadpool(service.symbols_pack, payload)
 
 
-@router.post("/glyphs/interpret")
-async def glyphs_interpret(payload: dict = Body(...)) -> Any:
+@router.post("/symbols/interpret")
+async def symbols_interpret(payload: dict = Body(...)) -> Any:
     seq = str(payload.get("sequence", ""))
-    return await run_in_threadpool(service.glyphs_interpret, seq)
+    return await run_in_threadpool(service.symbols_interpret, seq)
 
 
 @router.post("/activate/{preset}")
@@ -835,7 +838,7 @@ async def activate(preset: str) -> Any:
     return await run_in_threadpool(service.activate, preset)
 
 
-# --- Tri-Node Sync & Glyphic Protocol ---------------------------------------
+# --- Tri-Node Sync & Symbol Validation Protocol ---------------------------------------
 @router.post("/sync/update")
 async def sync_update(req: SyncUpdateRequest) -> Any:
     return await run_in_threadpool(service.sync_update, req.agent, req.state)
@@ -848,12 +851,12 @@ async def sync_snapshot() -> Any:
 async def sync_trinode() -> Any:
     return await run_in_threadpool(service.sync_trinode)
 
-@router.post("/glyphs/validate", response_model=GlyphValidateResponse)
-async def glyphs_validate(req: GlyphValidateRequest) -> Any:
+@router.post("/symbols/validate", response_model=SymbolValidateResponse)
+async def symbols_validate(req: SymbolValidateRequest) -> Any:
     return await run_in_threadpool(service.sync_validate, req.sequence)
 
-@router.get("/glyphs/boot", response_model=list[BootStep])
-async def glyphs_boot() -> Any:
+@router.get("/symbols/boot", response_model=list[BootStep])
+async def symbols_boot() -> Any:
     return await run_in_threadpool(service.sync_boot)
 
 # --- Persistence / Upgrade ---------------------------------------------------
@@ -1005,7 +1008,7 @@ async def dashboard_sentinel() -> Any:
         "codename": profile.get("codename", "Sentinel I"),
         "performance_boost": profile.get("performance_boost", 1),
         "cognitive_modules": {
-            "neural_prime": profile.get("cognitive_core", {}).get("neuralprime_extensions", {}),
+            "neural_prime": profile.get("cognitive_core", {}).get("gnn_extensions", {}),
             "emotional_engine": profile.get("emotional_engine", {}),
             "creative_modules": profile.get("creative_modules", {}),
             "memory_system": profile.get("memory_system", {})
@@ -1022,7 +1025,7 @@ async def dashboard_sentinel() -> Any:
 async def dashboard_view(request: Request) -> Any:
     """
     Phase 2 Dashboard Route (dep_A1_to_V1)
-    
+
     Serves the interactive dashboard with real-time metrics visualization.
     Integrates with:
     - Three-zone memory system from quantum_nexus_forge_v5_2_enhanced.py
@@ -1030,3 +1033,76 @@ async def dashboard_view(request: Request) -> Any:
     - Chart.js for real-time visualization
     """
     return templates.TemplateResponse("dashboard.html", {"request": request})
+
+
+# =============================================================================
+# SOVEREIGN FORGE — Multi-Platform Gateway Endpoints
+# =============================================================================
+#
+# These endpoints are the primary interface for Sovereign Forge.
+# Each request is fanned out to Quantum Nexus Forge (port 5000) and
+# Sentinel of Sentinel's Forge (port 8000) in parallel, then merged.
+#
+# Routes:
+#   GET  /api/gateway/health   — health of both downstream platforms
+#   GET  /api/gateway/metrics  — combined metrics snapshot
+#   POST /api/gateway/process  — unified dual-platform processing
+# =============================================================================
+
+
+@router.get("/gateway/health", tags=["Sovereign Gateway"])
+async def gateway_health() -> Dict[str, Any]:
+    """
+    Query the health of both downstream platforms simultaneously.
+
+    Returns the online/offline status of Quantum Nexus Forge and Sentinel,
+    plus Sovereign Forge's own status.
+    """
+    router_instance = get_sovereign_router()
+    return await router_instance.health()
+
+
+@router.get("/gateway/metrics", tags=["Sovereign Gateway"])
+async def gateway_metrics() -> Dict[str, Any]:
+    """
+    Fetch live metrics from both downstream platforms in parallel.
+
+    Returns a combined snapshot with each platform's metrics preserved
+    under platform-specific keys.
+    """
+    router_instance = get_sovereign_router()
+    return await router_instance.metrics()
+
+
+@router.post("/gateway/process", tags=["Sovereign Gateway"])
+async def gateway_process(
+    message: str = Body(..., embed=True, description="User message to process"),
+    lens: Optional[str] = Body(
+        None,
+        embed=True,
+        description="Cognitive lens: 'adhd' | 'autism' | 'dyslexia' | 'dyscalculia' | None",
+    ),
+    context: str = Body("", embed=True, description="Optional system context"),
+) -> Dict[str, Any]:
+    """
+    Send a single message to both Quantum Nexus Forge and Sentinel in parallel.
+
+    Both platforms process the request independently through their own
+    cognitive pipelines. The results are merged into a single unified
+    response by the Sovereign response merger.
+
+    - If both platforms are online: full dual-platform merged response.
+    - If one platform is offline: degraded-mode response from the available platform.
+    - If both are offline: error response with platform status detail.
+    """
+    router_instance = get_sovereign_router()
+    result = await router_instance.process(
+        message=message,
+        lens=lens,
+        context=context,
+    )
+
+    if result.get("degraded_mode"):
+        logging.warning("Gateway returning degraded-mode response.")
+
+    return result
