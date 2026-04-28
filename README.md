@@ -11,6 +11,11 @@ in parallel, then merges their outputs into one coherent response.
 
 Users interact with one product. Three engines work underneath.
 
+## Project Identity
+
+The canonical public name for this repo is **Sovereign Forge**.
+This is the gateway project in the portfolio set, not an alias for **Quantum Nexus Forge**, **Sentinel-of-sentinel-s-Forge**, or **Sentinel Forge Cognitive AI Orchestrator**.
+
 ## Architecture
 
 ```

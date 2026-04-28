@@ -7,6 +7,8 @@
 Fourth project in the multi-project portfolio sprint after LIB-PROJ-001 (Sentinel-Forge),
 LIB-PROJ-002 (Forge-Stack-A1), LIB-PROJ-003 (Quantum Nexus Forge).
 
+Naming note: **Sovereign Forge** is the canonical public project name. It stays separate from both downstream projects and from Sentinel Forge Cognitive AI Orchestrator.
+
 ---
 
 ## Why this pass happened
@@ -63,11 +65,11 @@ architecture, and the proof-points (test count, Docker compose, neurodivergent-l
 | | Project | Status |
 |---|---|---|
 | 1 | Sentinel-of-sentinel-s-Forge | LIB-PROJ-001 — polished 2026-04-28 |
-| 2 | Forge-Stack-A1 / Sentinel Prime Network | LIB-PROJ-002 — backend MVP shipped 2026-04-28 |
+| 2 | Sentinel Prime Network (internal stack label: Forge-Stack-A1) | LIB-PROJ-002 — backend MVP shipped 2026-04-28 |
 | 3 | Quantum Nexus Forge | LIB-PROJ-003 — polish-surfaced 2026-04-28 |
 | **4** | **Sovereign Forge (this project)** | **LIB-PROJ-004 — polish-surfaced 2026-04-28** |
 | 5 | enterprise-ai-reliability-platform-v1 | queued |
-| 6 | sentinel-forge-cognitive-orchestrator | queued |
+| 6 | Sentinel Forge Cognitive AI Orchestrator | queued |
 
 ---
 

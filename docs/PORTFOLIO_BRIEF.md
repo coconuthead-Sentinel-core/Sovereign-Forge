@@ -6,6 +6,11 @@
 
 **Multi-platform orchestration gateway** that takes a single user request and fans it out in parallel via `asyncio.gather()` to both downstream platforms — Quantum Nexus Forge (port 5000, symbolic processing) and Sentinel-Forge (port 8000, cognitive lens processing) — then merges the dual-platform outputs into one coherent response. Users interact with one product; three engines work underneath.
 
+## Naming
+
+Canonical public name: **Sovereign Forge**.
+This repo is the gateway layer and should not be used as an alias for either downstream platform.
+
 ## Role demonstrated
 
 **AI Orchestrator Architect** — explicit asynchronous fan-out coordination across heterogeneous AI services, response merging, gateway service design, accessibility-aware test discipline.
