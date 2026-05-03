@@ -161,60 +161,104 @@ class SymbolPatternMatcher:
         """Serialize a SymbolMatch (dataclass or dict) into a JSON-safe dict."""
         return _to_dict(match)
 
-    def _match_symbol(self, text: str, shape_name: str, shape_data: Dict[str, Any]) -> Optional[SymbolMatch]:
-        """
-        Match a single symbol pattern against text.
+    # ── Confidence model constants ─────────────────────────────────
+    EXACT_SCORE          = 1.0   # \bseed\b in text
+    SUBSTRING_SCORE      = 0.7   # seed contained as substring in text
+    STEM_SCORE           = 0.7   # seed and a text word share a strong prefix
+    SECONDARY_DECAY      = 0.9   # each match after the first contributes
+                                 # SECONDARY_DECAY ** i of its raw score
+    STEM_MIN_PREFIX      = 4     # minimum shared-prefix length to count
+    STEM_MIN_PREFIX_RATIO = 0.5  # AND >= this fraction of seed length
 
-        Uses fuzzy matching with:
-        - Exact word matches (highest confidence)
-        - Partial substring matches (medium confidence)
-        - Stem/root similarity (lower confidence)
+    def _stem_match(self, seed_lower: str, text_lower: str) -> bool:
+        """Return True if any word in `text_lower` shares a strong prefix
+        with `seed_lower`. Used as the third matching tier so words like
+        ``initialize`` partially match a seed of ``initiate`` (shared
+        prefix ``initia`` of length 6).
+        """
+        threshold = max(self.STEM_MIN_PREFIX,
+                        int(len(seed_lower) * self.STEM_MIN_PREFIX_RATIO))
+        for word in re.findall(r"[A-Za-z]+", text_lower):
+            if word == seed_lower or seed_lower in word or word in seed_lower:
+                # Already covered by exact / substring tiers
+                continue
+            common = 0
+            for a, b in zip(seed_lower, word):
+                if a != b:
+                    break
+                common += 1
+            if common >= threshold:
+                return True
+        return False
+
+    def _match_symbol(self, text: str, shape_name: str, shape_data: Dict[str, Any]) -> Optional[SymbolMatch]:
+        """Match a single symbol pattern against text.
+
+        Tiered matching, highest-confidence wins per seed:
+          1. Exact word     (\\bseed\\b)               -> EXACT_SCORE
+          2. Substring      (seed in text)             -> SUBSTRING_SCORE
+          3. Stem/prefix    (shared prefix >= cutoff)  -> STEM_SCORE
+
+        Final symbol confidence uses a *diminishing-returns average*: the
+        highest-scoring seed contributes its full score, each subsequent
+        seed contributes ``SECONDARY_DECAY ** rank`` of its score, then
+        the result is averaged over the matched-seed count. This preserves
+        the canonical contract:
+
+          * 1 exact match  -> 1.0 confidence
+          * 1 partial      -> 0.7 confidence
+          * N>=2 matches   -> < 1.0 (additional matches imply ambiguity
+                              about the dominant topic)
         """
         text_lower = text.lower()
         seeds = shape_data.get('seeds', [])
         rules = shape_data.get('rules', {})
         topic = shape_data.get('topic', 'unknown')
 
-        matched_seeds = []
-        applied_rules = {}
-        total_score = 0.0
-        match_count = 0
+        matched_seeds: List[str] = []
+        applied_rules: Dict[str, str] = {}
+        per_seed_scores: List[float] = []
 
         for seed in seeds:
             seed_lower = seed.lower()
+            score: Optional[float] = None
 
-            # Exact word match (highest confidence)
+            # Tier 1: exact word
             if re.search(r'\b' + re.escape(seed_lower) + r'\b', text_lower):
-                matched_seeds.append(seed)
-                total_score += 1.0
-                match_count += 1
-
-                # Apply rules if seed matches
-                if seed in rules:
-                    applied_rules[seed] = rules[seed]
-
-            # Partial substring match (medium confidence)
+                score = self.EXACT_SCORE
+            # Tier 2: substring
             elif seed_lower in text_lower:
-                matched_seeds.append(seed)
-                total_score += 0.7
-                match_count += 1
+                score = self.SUBSTRING_SCORE
+            # Tier 3: stem (shared prefix)
+            elif self._stem_match(seed_lower, text_lower):
+                score = self.STEM_SCORE
 
-                # Apply rules for partial matches too
-                if seed in rules:
-                    applied_rules[seed] = rules[seed]
+            if score is None:
+                continue
 
-        if match_count == 0:
+            matched_seeds.append(seed)
+            per_seed_scores.append(score)
+            if seed in rules:
+                applied_rules[seed] = rules[seed]
+
+        if not per_seed_scores:
             return None
 
-        # Calculate average confidence
-        confidence = total_score / match_count
+        # Diminishing-returns average. Sort descending so the strongest
+        # match anchors the confidence; subsequent matches discount.
+        sorted_scores = sorted(per_seed_scores, reverse=True)
+        weighted_total = sum(
+            s * (self.SECONDARY_DECAY ** i)
+            for i, s in enumerate(sorted_scores)
+        )
+        confidence = weighted_total / len(sorted_scores)
 
         return SymbolMatch(
             shape=shape_name,
             topic=topic,
-            confidence=min(confidence, 1.0),  # Cap at 1.0
+            confidence=min(confidence, 1.0),
             matched_seeds=matched_seeds,
-            applied_rules=applied_rules
+            applied_rules=applied_rules,
         )
 
     def get_available_shapes(self) -> List[str]:
