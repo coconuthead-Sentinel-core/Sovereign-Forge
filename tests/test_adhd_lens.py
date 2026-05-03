@@ -230,5 +230,4 @@ def test_adhd_lens_unicode_content():
 
     # Should preserve Unicode
     assert "🌟" in result
-    assert "🎯" in result</content>
-<parameter name="filePath">c:\Users\sbrya\OneDrive\Desktop\Sentinel of Sentinel forage\Sentinel-of-sentinel-s-Forge\tests\test_adhd_lens.py
+    assert "🎯" in result

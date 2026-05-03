@@ -252,3 +252,10 @@ class SymbolEventRouter:
 
 # Singleton instance for app-wide use
 symbol_event_router = SymbolEventRouter()
+
+
+# ── Backward-compat aliases (for legacy test suite — pre-Symbol-rename naming) ──
+GLYPH_LATTICE_MAP = SYMBOL_ROUTING_MAP
+GlyphEvent = SymbolEvent
+GlyphEventBridge = SymbolEventRouter
+glyph_bridge = SymbolEventRouter()
