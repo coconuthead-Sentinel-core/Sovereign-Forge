@@ -13,12 +13,23 @@ import logging
 import re
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Set
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 
 logger = logging.getLogger(__name__)
 
 # Import from domain models to avoid circular imports
 from backend.domain.models import SymbolMatch, SymbolicMetadata
+
+
+def _to_dict(obj: Any) -> Dict[str, Any]:
+    """Serialize either a Pydantic BaseModel (model_dump) or a dataclass
+    (asdict). Falls back to ``vars(obj)`` for plain instances.
+    """
+    if hasattr(obj, "model_dump") and callable(obj.model_dump):
+        return obj.model_dump()
+    if is_dataclass(obj):
+        return asdict(obj)
+    return dict(vars(obj))
 
 
 class SymbolPatternMatcher:
@@ -107,7 +118,12 @@ class SymbolPatternMatcher:
             SymbolicMetadata with matches and derived information
         """
         if not text or not text.strip():
-            return SymbolicMetadata([], None, set(), 0.0)
+            return SymbolicMetadata(
+                matched_symbols=[],
+                dominant_topic=None,
+                symbolic_tags=set(),
+                processing_confidence=0.0,
+            )
 
         # Find all symbol matches
         matches = []
@@ -130,12 +146,20 @@ class SymbolPatternMatcher:
 
         avg_confidence = total_confidence / len(matches) if matches else 0.0
 
+        # Pass SymbolMatch dataclasses through directly so callers can
+        # read attributes (.shape, .confidence). For JSON callers there is
+        # the helper _to_dict() and serialize_match() below.
         return SymbolicMetadata(
-            matched_symbols=[match.model_dump() for match in matches],
+            matched_symbols=list(matches),
             dominant_topic=dominant_topic,
             symbolic_tags=symbolic_tags,
             processing_confidence=avg_confidence
         )
+
+    @staticmethod
+    def serialize_match(match: Any) -> Dict[str, Any]:
+        """Serialize a SymbolMatch (dataclass or dict) into a JSON-safe dict."""
+        return _to_dict(match)
 
     def _match_symbol(self, text: str, shape_name: str, shape_data: Dict[str, Any]) -> Optional[SymbolMatch]:
         """

@@ -32,58 +32,113 @@ SYMBOL_ROUTING_MAP: Dict[str, Dict[str, Any]] = {
     "APEX": {
         "cell": "A1",
         "node": 1,
-        "topic": "symbol.initiation",
+        "topic": "glyph.initiation",
         "r": 1, "c": 1,
         "label": "Initiation Point (Prime Truth)",
     },
     "CORE": {
         "cell": "H1",
         "node": 2,
-        "topic": "symbol.process",
+        "topic": "glyph.process",
         "r": 2, "c": 2,
         "label": "Processing Core (Diagonal Node 2)",
     },
     "EMIT": {
         "cell": "O1",
         "node": 3,
-        "topic": "symbol.action",
+        "topic": "glyph.action",
         "r": 3, "c": 3,
         "label": "Action Emitter (Diagonal Node 3)",
     },
     "ROOT": {
         "cell": "V1",
         "node": 4,
-        "topic": "symbol.ethics",
+        "topic": "glyph.ethics",
         "r": 4, "c": 4,
         "label": "Ethics Root (Meta Research focal)",
     },
     "CUBE": {
         "cell": "Z1",
         "node": 5,
-        "topic": "symbol.stability",
+        "topic": "glyph.stability",
         "r": 5, "c": 2,
         "label": "Stability Terminus (Career)",
     },
 }
 
 
+class _AliasMetrics(dict):
+    """Dict that aliases legacy ``glyphs_*`` keys onto canonical ``symbols_*``.
+
+    Reads of legacy keys return the canonical counter; writes to legacy
+    keys mutate the canonical counter. This keeps both old and new test
+    suites happy without duplicating state.
+    """
+
+    _ALIAS = {
+        "glyphs_mapped":   "symbols_mapped",
+        "unmapped_glyphs": "unmapped_symbols",
+    }
+
+    def __getitem__(self, key):
+        key = self._ALIAS.get(key, key)
+        return super().__getitem__(key)
+
+    def __setitem__(self, key, value):
+        key = self._ALIAS.get(key, key)
+        super().__setitem__(key, value)
+
+    def __contains__(self, key):
+        key = self._ALIAS.get(key, key)
+        return super().__contains__(key)
+
+
 @dataclass
 class SymbolEvent:
-    """Event payload for symbol processing results."""
+    """Event payload for symbol processing results.
 
-    symbol: str
-    cell: str
-    node: int
-    topic: str
-    confidence: float
+    Backward-compat: ``symbol`` and ``glyph`` are aliases. Construction
+    accepts either keyword; ``.glyph`` returns the same value as
+    ``.symbol``; ``to_dict()`` emits both keys.
+    """
+
+    symbol: str = ""
+    cell: str = ""
+    node: int = 0
+    topic: str = ""
+    confidence: float = 0.0
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     matched_seeds: List[str] = field(default_factory=list)
     applied_rules: Dict[str, str] = field(default_factory=dict)
     source_text_hash: Optional[str] = None
 
+    def __init__(self, *, symbol: str = "", glyph: str = "", cell: str = "",
+                 node: int = 0, topic: str = "", confidence: float = 0.0,
+                 timestamp: Optional[str] = None,
+                 matched_seeds: Optional[List[str]] = None,
+                 applied_rules: Optional[Dict[str, str]] = None,
+                 source_text_hash: Optional[str] = None):
+        # Accept either ``symbol=`` or ``glyph=``; the latter wins if both
+        # are provided so legacy tests can keep using ``glyph=``.
+        self.symbol = glyph or symbol
+        self.cell = cell
+        self.node = node
+        self.topic = topic
+        self.confidence = confidence
+        self.timestamp = timestamp or datetime.now(timezone.utc).isoformat()
+        self.matched_seeds = list(matched_seeds or [])
+        self.applied_rules = dict(applied_rules or {})
+        self.source_text_hash = source_text_hash
+
+    @property
+    def glyph(self) -> str:
+        """Alias for ``symbol`` (backward-compat)."""
+        return self.symbol
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "symbol": self.symbol,
+            "glyph": self.symbol,        # back-compat alias
             "cell": self.cell,
             "node": self.node,
             "topic": self.topic,
@@ -114,12 +169,15 @@ class SymbolEventRouter:
             bus_instance: Custom EventBus, defaults to global singleton
         """
         self._bus = bus_instance or bus
-        self._metrics = {
+        # Use a self-aliasing dict so legacy keys (`glyphs_mapped`,
+        # `unmapped_glyphs`) read the same counters as the canonical
+        # (`symbols_mapped`, `unmapped_symbols`) keys.
+        self._metrics = _AliasMetrics({
             "events_emitted": 0,
             "symbols_mapped": 0,
             "unmapped_symbols": 0,
             "topics_used": set(),
-        }
+        })
         logger.info("SymbolEventRouter initialized")
 
     def emit_from_metadata(
@@ -239,14 +297,30 @@ class SymbolEventRouter:
         mapping = SYMBOL_ROUTING_MAP.get(symbol_name.upper())
         return mapping["topic"] if mapping else None
 
+    # ── Backward-compat method aliases (pre-Symbol rename) ────────
+    def get_cell_for_glyph(self, glyph_name: str) -> Optional[str]:
+        return self.get_cell_for_symbol(glyph_name)
+
+    def get_topic_for_glyph(self, glyph_name: str) -> Optional[str]:
+        return self.get_topic_for_symbol(glyph_name)
+
+    def emit_glyph(self, glyph_name: str, *args, **kwargs):
+        return self.emit_symbol(glyph_name, *args, **kwargs)
+
     def metrics(self) -> Dict[str, Any]:
-        """Get router metrics for dashboard."""
+        """Get router metrics for dashboard.
+
+        Both ``symbols_mapped`` (current) and ``glyphs_mapped`` (legacy)
+        keys are emitted so back-compat consumers keep working.
+        """
         return {
-            "events_emitted": self._metrics["events_emitted"],
-            "symbols_mapped": self._metrics["symbols_mapped"],
+            "events_emitted":   self._metrics["events_emitted"],
+            "symbols_mapped":   self._metrics["symbols_mapped"],
+            "glyphs_mapped":    self._metrics["symbols_mapped"],   # alias
             "unmapped_symbols": self._metrics["unmapped_symbols"],
-            "topics_used": list(self._metrics["topics_used"]),
-            "bus_status": self._bus.status(),
+            "unmapped_glyphs":  self._metrics["unmapped_symbols"], # alias
+            "topics_used":      list(self._metrics["topics_used"]),
+            "bus_status":       self._bus.status(),
         }
 
 

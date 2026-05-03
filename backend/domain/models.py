@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any, Set
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from datetime import datetime, timezone
 from enum import Enum
 import uuid
@@ -108,16 +108,36 @@ class ZoneMetrics(BaseModel):
 class SymbolicMetadata(BaseModel):
     """
     Metadata generated from symbolic processing of text.
-    
+
     Contains symbol matches, dominant topics, and symbolic tags
     derived from pattern recognition.
+
+    ``matched_symbols`` accepts either SymbolMatch dataclasses (so
+    consumers can read ``.shape``, ``.confidence`` directly) or
+    plain dicts (for JSON serialization). The model is permissive
+    via ``arbitrary_types_allowed`` so the dataclass passes through.
+
+    Backward-compat: legacy callers may pass ``matched_glyphs=`` —
+    accepted as an alias via ``populate_by_name``.
     """
-    matched_symbols: List[Dict[str, Any]] = Field(default_factory=list)
+    matched_symbols: List[Any] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("matched_symbols", "matched_glyphs"),
+    )
     dominant_topic: Optional[str] = None
     symbolic_tags: Set[str] = Field(default_factory=set)
     processing_confidence: float = 0.0
-    
-    model_config = ConfigDict(extra="ignore")
+
+    model_config = ConfigDict(
+        extra="ignore",
+        arbitrary_types_allowed=True,
+        populate_by_name=True,
+    )
+
+    @property
+    def matched_glyphs(self) -> List[Any]:
+        """Legacy alias for ``matched_symbols``."""
+        return self.matched_symbols
 
 
 class MemorySnapshot(Entity):

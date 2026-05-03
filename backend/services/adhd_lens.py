@@ -89,17 +89,27 @@ class ADHDLens:
         sentences = re.split(r'(?<=[.!?])\s+', text.strip())
         return [s.strip() for s in sentences if s.strip()]
 
+    MAX_SENTENCES_PER_CHUNK = 5  # ADHD-friendly: never glob more than 5
+
     def _create_chunks(self, sentences: List[str]) -> List[str]:
-        """Group sentences into word-count-limited chunks."""
-        chunks = []
-        current_chunk = []
+        """Group sentences into chunks bounded by BOTH a word-count cap
+        and a sentence-count cap. The dual bound keeps lots of short
+        sentences from collapsing into a single hard-to-scan blob —
+        ADHD-friendliness is the whole point of this lens.
+        """
+        chunks: List[str] = []
+        current_chunk: List[str] = []
         current_word_count = 0
 
         for sentence in sentences:
             sentence_words = len(sentence.split())
 
-            # If adding this sentence would exceed chunk size, start new chunk
-            if current_word_count + sentence_words > self.chunk_size and current_chunk:
+            # Flush if either word OR sentence cap would be exceeded.
+            word_overflow     = (current_word_count + sentence_words
+                                 > self.chunk_size) and current_chunk
+            sentence_overflow = (len(current_chunk)
+                                 >= self.MAX_SENTENCES_PER_CHUNK)
+            if word_overflow or sentence_overflow:
                 chunks.append(" ".join(current_chunk))
                 current_chunk = []
                 current_word_count = 0
@@ -107,7 +117,6 @@ class ADHDLens:
             current_chunk.append(sentence)
             current_word_count += sentence_words
 
-        # Add remaining sentences
         if current_chunk:
             chunks.append(" ".join(current_chunk))
 
@@ -148,8 +157,8 @@ class ADHDLens:
         """Get current lens configuration."""
         return {
             "chunk_size_words": self.chunk_size,
-            "bullet_markers": self.bullet_markers,
-            "action_words": self.action_words,
+            "bullet_markers":   list(self.BULLET_MARKERS),
+            "action_words":     list(self.ACTION_WORDS),
         }
 
 

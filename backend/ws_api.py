@@ -93,17 +93,11 @@ async def ws_cognitive(websocket: WebSocket) -> Any:
     except WebSocketDisconnect:
         pass
     finally:
-        bus.unsubscribe(cognitive_queue)
-        bus.unsubscribe(symbolic_queue)
-        bus.unsubscribe(glyph_queue)
-        while True:
-            # Wait for next event or client ping
-            payload = await queue.get()
-            await websocket.send_text(json.dumps(payload))
-    except WebSocketDisconnect:
-        pass
-    finally:
-        bus.unsubscribe(queue)
+        for q in (cognitive_queue, symbolic_queue, glyph_queue):
+            try:
+                bus.unsubscribe(q)
+            except Exception:
+                pass
 
 
 @router.websocket("/ws/metrics")
@@ -176,3 +170,35 @@ async def websocket_events(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket error: {e}")
         manager.disconnect(websocket)
+
+
+@router.websocket("/ws/sync")
+async def ws_sync(websocket: WebSocket) -> Any:
+    """Catch-all WebSocket: forwards every published event on the bus to
+    the connected client as a text JSON frame.
+
+    Used by the dashboard's "live tail" view and by the integration test
+    suite. Honors the same API-key gating as the cognitive endpoint.
+    """
+    websocket_require_api_key(websocket)
+    await websocket.accept()
+    loop = asyncio.get_running_loop()
+
+    # Subscribe to ALL events on the bus (no topic filter)
+    queue = bus.subscribe(loop, maxsize=200, policy="latest")
+
+    try:
+        while True:
+            payload = await queue.get()
+            try:
+                msg = json.dumps(payload, default=str)
+            except (TypeError, ValueError):
+                msg = json.dumps({"type": "raw", "data": str(payload)})
+            await websocket.send_text(msg)
+    except WebSocketDisconnect:
+        pass
+    finally:
+        try:
+            bus.unsubscribe(queue)
+        except Exception:
+            pass

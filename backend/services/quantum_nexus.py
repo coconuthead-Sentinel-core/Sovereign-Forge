@@ -37,17 +37,116 @@ class QuantumNexus:
             data = data["quantum_nexus_blueprint"]
         return cls(data)
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "QuantumNexus":
+        """Construct from an in-memory blueprint dict.
+
+        Accepts either a top-level blueprint or one nested under
+        ``quantum_nexus_blueprint`` (matching ``from_yaml`` semantics).
+        """
+        if "quantum_nexus_blueprint" in data:
+            data = data["quantum_nexus_blueprint"]
+        return cls(data)
+
     def dependency(self, dep_id: str) -> Dict[str, Any]:
         if dep_id not in self._deps:
             raise KeyError(f"Dependency not found: {dep_id}")
         return self._deps[dep_id]
 
     def resolve_cell(self, cell: str) -> GreatGreg:
-        cell = cell.strip()
-        info = self._rc_map.get(cell)
+        # Case-insensitive lookup: try exact, then upper-case, then any case match
+        original = cell.strip()
+        info = self._rc_map.get(original)
+        canonical = original
         if not info:
-            raise KeyError(f"Unknown cell: {cell}")
-        return GreatGreg(cell=cell, r=int(info["r"]), c=int(info["c"]), node=int(info["node"]), label=str(info["label"]))
+            up = original.upper()
+            info = self._rc_map.get(up)
+            if info:
+                canonical = up
+            else:
+                # last attempt: case-insensitive scan
+                for k, v in self._rc_map.items():
+                    if k.lower() == original.lower():
+                        info = v
+                        canonical = k
+                        break
+        if not info:
+            raise KeyError(f"Unknown cell: {original}")
+        return GreatGreg(
+            cell=canonical, r=int(info["r"]), c=int(info["c"]),
+            node=int(info["node"]), label=str(info["label"]),
+        )
+
+    # ── Origin / Terminus shortcuts ───────────────────────────────────
+    @property
+    def origin(self) -> GreatGreg:
+        """A1 — Prime Truth (lowest r,c — the architecture's origin)."""
+        return self._extreme(reverse=False)
+
+    @property
+    def terminus(self) -> GreatGreg:
+        """Last cell — Dynamic Expansion frontier."""
+        return self._extreme(reverse=True)
+
+    def _extreme(self, *, reverse: bool) -> GreatGreg:
+        if not self._rc_map:
+            raise KeyError("rc_map is empty")
+        # Sort by (r, c) ascending for origin, descending for terminus
+        items = sorted(
+            self._rc_map.items(),
+            key=lambda kv: (int(kv[1]["r"]), int(kv[1]["c"])),
+            reverse=reverse,
+        )
+        cell, info = items[0]
+        return GreatGreg(
+            cell=cell, r=int(info["r"]), c=int(info["c"]),
+            node=int(info["node"]), label=str(info["label"]),
+        )
+
+    # ── Path tracing ─────────────────────────────────────────────────
+    def diagonal_trace(self, dep_id: str = "dep_A1_to_V1"
+                       ) -> List[GreatGreg]:
+        """Resolve a diagonal_dependency's `path` (list of cells) into GreatGregs."""
+        dep = self.dependency(dep_id)
+        path = dep.get("path", [])
+        return [self.resolve_cell(c) for c in path]
+
+    def lateral_trace(self, dep_id: str = "dep_AllFiles_L2R_to_Z1"
+                      ) -> List[GreatGreg]:
+        """Resolve a lateral_row_major_dependency's `path` (list of rows of cells)."""
+        dep = self.dependency(dep_id)
+        path = dep.get("path", [])
+        out: List[GreatGreg] = []
+        for row in path:
+            if isinstance(row, list):
+                for cell in row:
+                    out.append(self.resolve_cell(cell))
+            else:
+                out.append(self.resolve_cell(row))
+        return out
+
+    # ── Node lookup ──────────────────────────────────────────────────
+    def node(self, node_id: str) -> Dict[str, Any]:
+        for n in (self.bp.get("nodes") or []):
+            if isinstance(n, dict) and n.get("id") == node_id:
+                return n
+        raise KeyError(f"Node not found: {node_id}")
+
+    def get_node_cells(self, node_id: str) -> List[GreatGreg]:
+        n = self.node(node_id)
+        return [self.resolve_cell(c) for c in (n.get("cells") or [])]
+
+    # ── API formatting ───────────────────────────────────────────────
+    def to_api_response(self, cell: str) -> Dict[str, Any]:
+        gg = self.resolve_cell(cell)
+        return {
+            "cell":    gg.cell,
+            "row":     gg.r,
+            "column":  gg.c,
+            "node":    gg.node,
+            "node_id": f"Node_{gg.node}",
+            "label":   gg.label,
+        }
 
     def resolve(self, ref: str) -> GreatGreg:
         """
