@@ -1,6 +1,6 @@
 # Sovereign Forge — Multi-Platform Orchestration Gateway
 
-**Unified cognitive AI gateway for the Forge Trilogy** | 2025
+| 2025
 
 ## Overview
 
